@@ -1,5 +1,5 @@
-const CACHE = 'academia-v2';
-const ARQUIVOS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png'];
+const CACHE = 'academia-v3';
+const ARQUIVOS = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png'];
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -20,7 +20,9 @@ self.addEventListener('fetch', function (e) {
     caches.match(e.request).then(function (r) {
       if (r) return r;
       return fetch(e.request).then(function (resp) {
-        if (resp && resp.ok && e.request.url.startsWith(self.location.origin)) {
+        const origem = new URL(e.request.url);
+        const cacheavel = resp && resp.ok && (origem.origin === self.location.origin || origem.hostname.endsWith('gstatic.com'));
+        if (cacheavel) {
           const clone = resp.clone();
           caches.open(CACHE).then(function (c) { c.put(e.request, clone); });
         }
