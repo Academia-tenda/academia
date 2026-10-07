@@ -213,6 +213,16 @@ function salvarSerie(ex,idx,bruto){
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
 function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
 function novoModelo(){const o={};ORDEM.forEach(function(t){o[t]=PADRAO[t].map(function(e){return{id:id(),nome:e[0],series:e[1],reps:e[2]}})});return o}
+function treinosVaziosCompletos(){return ORDEM.every(function(t){const a=dados.treinos[t];return !a||!a.length})}
+const JAPERG='modelo_ja_perguntado';
+function perguntarModelo(){
+  if(localStorage.getItem(JAPERG))return;
+  localStorage.setItem(JAPERG,'1');
+  if(treinosVaziosCompletos()&&confirm('Sua conta está vazia. Carregar o modelo de treino A–E para começar?')){
+    dados.treinos=novoModelo();
+    salvarLocal(); render(); enviarNuvem();
+  }
+}
 function localPuroModelo(){
   if(Object.keys(dados.pesos).length)return false;
   const dias=Object.keys(dados.progresso);
@@ -540,6 +550,7 @@ async function baixarNuvem(){
       }
       enviarNuvem();
     }
+    perguntarModelo();
   }catch(e){}
 }
 async function iniciarAuth(){
