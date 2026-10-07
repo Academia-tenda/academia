@@ -45,12 +45,15 @@ nav{display:flex;gap:8px;padding:4px 16px 0}
 .item.done .nome{color:#64748b;text-decoration:line-through}
 .histbtn{background:none;border:1px solid #78590f;color:#fbbf24;border-radius:99px;padding:1px 9px;font-size:11.5px;cursor:pointer;font-family:inherit;margin-top:3px}
 .histbtn:active{transform:scale(.96)}
-.pesobox{display:flex;align-items:center;flex-shrink:0}
-.pesobox input{width:68px;background:#0f172a;border:1px solid #475569;color:#fbbf24;border-radius:9px;padding:8px 7px;font-size:14.5px;text-align:right;font-family:inherit;min-width:0}
-.pesobox input:focus{outline:none;border-color:#f59e0b}
-.pesobox input::placeholder{color:#64748b}
+.seriespeso{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.sp{display:flex;align-items:center;gap:5px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:4px 7px}
+.sp b{font-size:11px;color:#64748b;font-weight:700}
+.sp input{width:50px;background:transparent;border:none;color:#fbbf24;font-size:14px;text-align:right;padding:2px 1px;font-family:inherit;min-width:0}
+.sp input:focus{outline:none}
+.sp input::placeholder{color:#475569}
+.sp:focus-within{border-color:#f59e0b}
 .edicao{display:none;flex:1;flex-direction:column;gap:8px}
-body.editando .check,body.editando .info,body.editando .pesobox{display:none}
+body.editando .check,body.editando .info,body.editando .seriespeso{display:none}
 body.editando .edicao{display:flex}
 .linha1{display:flex;gap:8px}
 .edicao input{background:#0f172a;border:1px solid #475569;color:#e2e8f0;border-radius:9px;padding:9px 10px;font-size:14px;font-family:inherit;min-width:0}
@@ -62,6 +65,8 @@ body.editando .edicao{display:flex}
 .vazio{padding:30px 16px;text-align:center;color:#64748b;background:#1e293b;border:1px dashed #334155;border-radius:14px;font-size:14px;line-height:1.6}
 #btnAdicionar{display:none;width:calc(100% - 32px);margin:12px 16px 0;padding:13px 0;font-size:15px;justify-content:center}
 body.editando #btnAdicionar{display:flex}
+#btnModelo{display:none;width:calc(100% - 32px);margin:10px 16px 0;padding:13px 0;font-size:14.5px;background:#1e293b;color:#94a3b8}
+body.editando #btnModelo{display:block}
 .rodape{margin:18px 16px 0}
 .rodape .btn{width:100%;padding:13px 0;font-size:14.5px}
 .overlay{position:fixed;inset:0;background:rgba(2,6,23,.78);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -98,7 +103,7 @@ body.editando #btnAdicionar{display:flex}
   <h1>ACADEM<span>IA</span></h1>
   <div class="topo">
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
-    <button class="btn" id="btnEditar">Editar</button>
+    <button class="btn" id="btnEditar" hidden>Editar</button>
     <button class="btn" id="btnConta" hidden>Entrar</button>
   </div>
 </header>
@@ -118,6 +123,7 @@ body.editando #btnAdicionar{display:flex}
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
+<button class="btn" id="btnModelo">Carregar modelo (A–E)</button>
 <div class="rodape"><button class="btn warn" id="btnLimpar">Limpar marcações de hoje</button></div>
 
 <div class="overlay" id="modalLogin" hidden>
@@ -171,8 +177,55 @@ let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function hoje(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fmtData(iso){const p=iso.split('-');return p[2]+'/'+p[1]}
-function fmtPeso(n){return Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1})+' kg'}
+function fmtNum(n){return Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1})}
+function fmtPeso(n){return fmtNum(n)+' kg'}
+function pesosDoRegistro(e){return Array.isArray(e.ps)?e.ps.filter(function(x){return x!=null}):((e&&e.p!=null)?[e.p]:[])}
+function maxRegistro(e){const ps=pesosDoRegistro(e);return ps.length?Math.max.apply(null,ps):(e&&e.p!=null?Number(e.p):0)}
+function fmtRegistro(e){const ps=pesosDoRegistro(e);if(!ps.length)return fmtPeso(e.p);const mn=Math.min.apply(null,ps),mx=Math.max.apply(null,ps);return mn===mx?fmtPeso(mx):fmtNum(mn)+'–'+fmtNum(mx)+' kg'}
+function nSeriesDe(ex){return Math.max(1,Math.min(12,parseInt(ex.series,10)||1))}
+function salvarSerie(ex,idx,bruto){
+  const hj=hoje(), n=nSeriesDe(ex);
+  const v=String(bruto).trim().replace(',','.');
+  let p=null;
+  if(v!==''){p=parseFloat(v);if(isNaN(p)||p<0)return}
+  if(!dados.pesos[ex.id])dados.pesos[ex.id]={nome:ex.nome,hist:[]};
+  const reg=dados.pesos[ex.id];
+  reg.nome=ex.nome;
+  let entry=null;
+  for(let i=0;i<reg.hist.length;i++){if(reg.hist[i].d===hj){entry=reg.hist[i];break}}
+  if(!entry&&p===null)return;
+  if(!entry){entry={d:hj,ps:[],t:Date.now()};reg.hist.push(entry)}
+  if(!Array.isArray(entry.ps))entry.ps=(entry.p!=null)?[entry.p]:[];
+  while(entry.ps.length<idx+1)entry.ps.push(null);
+  entry.ps[idx]=p;
+  if(entry.ps.length>n)entry.ps.length=n;
+  while(entry.ps.length&&entry.ps[entry.ps.length-1]===null)entry.ps.pop();
+  const nums=entry.ps.filter(function(x){return x!=null});
+  if(!nums.length){
+    reg.hist=reg.hist.filter(function(x){return x.d!==hj});
+  }else{
+    entry.p=Math.max.apply(null,nums);
+    entry.t=Date.now();
+    reg.hist.sort(function(a,b){return a.d<b.d?-1:1});
+  }
+  salvar(); render();
+}
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
+function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
+function novoModelo(){const o={};ORDEM.forEach(function(t){o[t]=PADRAO[t].map(function(e){return{id:id(),nome:e[0],series:e[1],reps:e[2]}})});return o}
+function localPuroModelo(){
+  if(Object.keys(dados.pesos).length)return false;
+  const dias=Object.keys(dados.progresso);
+  for(let i=0;i<dias.length;i++){
+    const t=dados.progresso[dias[i]];
+    for(const k in t){if(Array.isArray(t[k])&&t[k].length)return false}
+  }
+  return ORDEM.every(function(t){
+    const a=dados.treinos[t];
+    if(!Array.isArray(a)||a.length!==PADRAO[t].length)return false;
+    return PADRAO[t].every(function(e,i){return a[i]&&a[i].nome===e[0]&&a[i].series===e[1]&&a[i].reps===e[2]});
+  });
+}
 
 function carregar(){
   let j=null;
@@ -222,7 +275,7 @@ function render(){
   if(!visiveis.length&&!editando){
     const d=document.createElement('div');
     d.className='vazio';
-    d.textContent='Nenhum exercício aqui ainda. Toque em Editar para montar o treino.';
+    d.textContent=usuario?'Nenhum exercício ainda. Toque em Editar para adicionar.':'Nenhum exercício ainda. Entre na conta para montar seu treino.';
     lista.appendChild(d);
   }
   arr.forEach(function(ex){
@@ -247,35 +300,29 @@ function render(){
       const ult=reg.hist[reg.hist.length-1];
       const b=document.createElement('button');
       b.className='histbtn';
-      b.textContent='Últ '+fmtPeso(ult.p)+(ult.d!==hoje()?' · '+fmtData(ult.d):'');
+      b.textContent='Últ '+fmtRegistro(ult)+(ult.d!==hoje()?' · '+fmtData(ult.d):'');
       b.onclick=function(){abrirHistorico(ex)};
       info.querySelector('.linha2').appendChild(b);
     }
-    const pb=document.createElement('div');
-    pb.className='pesobox';
-    const pi=document.createElement('input');
-    pi.type='text'; pi.inputMode='decimal'; pi.placeholder='kg';
-    pi.setAttribute('aria-label','Peso de hoje para '+ex.nome);
     const hj=hoje();
     const hojeReg=reg&&Array.isArray(reg.hist)?reg.hist.find(function(x){return x.d===hj}):null;
-    pi.value=hojeReg?String(hojeReg.p).replace('.',','):'';
-    pi.onchange=function(){
-      const bruto=pi.value.trim();
-      if(!bruto){
-        if(dados.pesos[ex.id])dados.pesos[ex.id].hist=dados.pesos[ex.id].hist.filter(function(x){return x.d!==hj});
-      }else{
-        const p=parseFloat(bruto.replace(',','.'));
-        if(isNaN(p)||p<0){pi.value='';return}
-        if(!dados.pesos[ex.id])dados.pesos[ex.id]={nome:ex.nome,hist:[]};
-        const reg2=dados.pesos[ex.id];
-        reg2.nome=ex.nome;
-        reg2.hist=reg2.hist.filter(function(x){return x.d!==hj});
-        reg2.hist.push({d:hj,p:p,t:Date.now()});
-        reg2.hist.sort(function(a,b){return a.d<b.d?-1:1});
-      }
-      salvar(); render();
-    };
-    pb.appendChild(pi);
+    const psAtual=hojeReg&&Array.isArray(hojeReg.ps)?hojeReg.ps:((hojeReg&&hojeReg.p!=null)?[hojeReg.p]:[]);
+    const sp=document.createElement('div');
+    sp.className='seriespeso';
+    const nS=nSeriesDe(ex);
+    for(let s=0;s<nS;s++){
+      const lab=document.createElement('span');
+      lab.className='sp';
+      const num=document.createElement('b');
+      num.textContent=String(s+1);
+      const inp=document.createElement('input');
+      inp.type='text'; inp.inputMode='decimal'; inp.placeholder='kg';
+      inp.setAttribute('aria-label','Peso da série '+(s+1)+' de '+ex.nome);
+      const val=psAtual[s];
+      inp.value=(val==null||val==='')?'':String(val).replace('.',',');
+      (function(idx,el){el.onchange=function(){salvarSerie(ex,idx,el.value)}})(s,inp);
+      lab.appendChild(num); lab.appendChild(inp); sp.appendChild(lab);
+    }
     const ed=document.createElement('div');
     ed.className='edicao';
     ed.innerHTML='<div class="linha1"><input class="nomei" placeholder="Nome do exercício"><input class="s" placeholder="Séries" inputmode="numeric"><input class="r" placeholder="Repetições"></div><button class="del">Remover</button>';
@@ -291,7 +338,7 @@ function render(){
       delete dados.pesos[ex.id];
       salvar(); render();
     };
-    li.appendChild(chk); li.appendChild(info); li.appendChild(pb); li.appendChild(ed);
+    li.appendChild(chk); li.appendChild(info); li.appendChild(sp); li.appendChild(ed);
     lista.appendChild(li);
     if(editando&&focarNovo&&ex===arr[arr.length-1])setTimeout(function(){inNome.focus()},0);
   });
@@ -311,10 +358,10 @@ function abrirHistorico(ex){
       const linha=document.createElement('div');
       linha.className='histlinha';
       const d=document.createElement('span'); d.className='d'; d.textContent=fmtData(h[i].d);
-      const p=document.createElement('span'); p.className='p'; p.textContent=fmtPeso(h[i].p);
+      const p=document.createElement('span'); p.className='p'; p.textContent=fmtRegistro(h[i]);
       linha.appendChild(d);
       if(i>0){
-        const delta=h[i].p-h[i-1].p;
+        const delta=maxRegistro(h[i])-maxRegistro(h[i-1]);
         const s=document.createElement('span');
         if(Math.abs(delta)<0.01){s.className='flat';s.textContent='—'}
         else{const up=delta>0;s.className=up?'up':'down';s.textContent=(up?'+':'')+fmtPeso(delta)}
@@ -348,6 +395,13 @@ document.getElementById('btnEditar').onclick=function(){
 document.getElementById('btnAdicionar').onclick=function(){
   dados.treinos[treinoAtual].push({id:id(),nome:'',series:'',reps:''});
   focarNovo=true; salvar(); render();
+};
+document.getElementById('btnModelo').onclick=function(){
+  if(!confirm('Substituir todos os seus treinos pelo modelo A–E? Marcações e pesos serão apagados.'))return;
+  dados.treinos=novoModelo();
+  dados.progresso={};
+  dados.pesos={};
+  salvar(); render();
 };
 document.getElementById('btnLimpar').onclick=function(){
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
@@ -392,8 +446,15 @@ function msgErro(e){
   };
   return mapa[c]||'Não foi possível entrar. Tente novamente.';
 }
+function sairDoModoEdicao(){
+  editando=false;
+  document.body.classList.remove('editando');
+  document.getElementById('btnEditar').textContent='Editar';
+}
 function atualizaBotaoConta(){
   const b=document.getElementById('btnConta');
+  document.getElementById('btnEditar').hidden=!usuario;
+  if(!usuario&&editando)sairDoModoEdicao();
   if(!temConfig()){b.hidden=true;return}
   b.hidden=false;
   if(usuario){
@@ -428,9 +489,9 @@ async function enviarNuvem(){
   }catch(e){}
 }
 function mesclarNuvem(c){
-  if(c.treinos){
+  if(c.treinos&&typeof c.treinos==='object'){
     ORDEM.forEach(function(t){
-      if(Array.isArray(c.treinos[t])&&c.treinos[t].length)dados.treinos[t]=c.treinos[t];
+      dados.treinos[t]=Array.isArray(c.treinos[t])?c.treinos[t]:[];
     });
   }
   if(c.progresso){
@@ -471,6 +532,12 @@ async function baixarNuvem(){
       mesclarNuvem(snap.data()||{});
       salvarLocal(); render();
     }else{
+      if(localPuroModelo()){
+        dados.treinos=treinosVazios();
+        dados.progresso={};
+        dados.pesos={};
+        salvarLocal(); render();
+      }
       enviarNuvem();
     }
   }catch(e){}
@@ -480,6 +547,7 @@ async function iniciarAuth(){
   fb.U.onAuthStateChanged(fb.auth,function(u){
     usuario=u;
     atualizaBotaoConta();
+    render();
     if(u)baixarNuvem();
   });
 }

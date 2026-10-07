@@ -1,4 +1,4 @@
-const CACHE = 'academia-v4';
+const CACHE = 'academia-v5';
 const ARQUIVOS = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png'];
 
 self.addEventListener('install', function (e) {
