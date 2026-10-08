@@ -154,7 +154,12 @@ body{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
 :root{--accent:#ee713a;--ink:#22251f;--muted:#73796d}
 body{max-width:960px!important;padding-bottom:calc(110px + env(safe-area-inset-bottom));font-family:ui-rounded,"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 header{padding:22px 24px 16px;background:rgba(247,247,242,.96);border-bottom:1px solid #e3e5dc}
-h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
+.brand{display:flex;flex-direction:column}
+.logo-tenda{height:54px;width:auto;max-width:min(200px,46vw);object-fit:contain;margin:2px 0 4px;align-self:flex-start}
+.logo-tenda.escuro{display:none}
+body.noite .logo-tenda.claro{display:none}
+body.noite .logo-tenda.escuro{display:block}
+body.noite .brand-small{color:#94a3b8}
 .brand-small{display:block;letter-spacing:2.4px;font-size:9px;color:#73796d;margin-top:4px}
 .btn{border-radius:14px;min-height:42px;transition:background .15s,transform .15s}.btn.acc{font-weight:750}.btn:focus-visible,.aba:focus-visible,.check:focus-visible{outline:3px solid #ee713a;outline-offset:3px}
 .view-switch{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,960px);z-index:15;margin:0;padding:12px 24px calc(12px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid #e3e5dc;gap:12px}
@@ -263,7 +268,11 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
 </head>
 <body>
 <header>
-  <h1>Tenda<span>.</span><small class="brand-small">SEU ESPAÇO DE TREINO</small></h1>
+  <div class="brand">
+    <img class="logo-tenda claro" src="img/logo_tenda.png" alt="Academia Tenda">
+    <img class="logo-tenda escuro" src="img/logo_tenda_branco.png" alt="Academia Tenda">
+    <small class="brand-small">SEU ESPAÇO DE TREINO</small>
+  </div>
   <div class="topo">
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
     <button class="btn" id="btnEditar" hidden>Editar</button>
