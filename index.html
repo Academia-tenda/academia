@@ -961,17 +961,24 @@ async function baixarNuvem(){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-   if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
-    localStorage.removeItem(CHAVE+'_antes_sincronizar');
-    dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
-    atualizarOrdem();garantirTreinoAtual();
-    alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
+if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
+     localStorage.removeItem(CHAVE+'_antes_sincronizar');
+     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
+     atualizarOrdem();garantirTreinoAtual();
+     alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
+     statusSalvar('Seus dados foram carregados da sua conta.');
+    }else if(!temConteudo(remote)&&!temConteudo(dados)){
+     statusSalvar('Sua conta está vazia. Se o treino estiver em outro aparelho, entre nele com esta mesma conta e toque em Sincronizar.');
+    }
    }
-  }
   syncPronto=true;sincronizado=-1;agendarEnvio();
  }catch(e){statusSalvar(localSalvo?'Salvo neste navegador · não foi possível carregar a nuvem. Tente novamente.':'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.')}
 }
-document.getElementById('btnSincronizar').onclick=function(){enviarNuvem(true)};
+document.getElementById('btnSincronizar').onclick=function(){
+  if(!usuario)return;
+  if(temConteudo(dados)){enviarNuvem(true);statusSalvar('Enviando os dados deste aparelho para a sua conta...')}
+  else{statusSalvar('Este aparelho está vazio. Carregando seus dados da conta...');baixarNuvem()}
+};
 window.addEventListener('online',()=>{if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
 
 async function iniciarAuth(){
