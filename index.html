@@ -146,7 +146,13 @@ button:focus-visible,input:focus-visible{outline:2px solid #ee713a;outline-offse
 .mini-stat span{color:#73796d}
 .mini-stat b{color:#22251f;text-align:right}
 .small-note{font-size:12px;color:#73796d;line-height:1.5}
-body{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
+.medidas{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.med-campo{flex:1;min-width:130px}
+.med-campo span{display:block;font-size:12px;color:#73796d;margin-bottom:4px}
+.med-campo input,.med-peso input{width:100%;background:#f7f7f2;border:1px solid #c3c8bd;border-radius:10px;color:#22251f;padding:12px;font:inherit}
+.med-peso{display:flex;gap:8px;margin:12px 0 4px}
+.med-peso input{flex:1;min-width:0}
+.med-peso .btn{flex-shrink:0;padding:12px 14px;white-space:normal}body{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
 @media(min-width:900px){body{max-width:900px}.evolucao{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evolucao .secao{margin-top:14px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
@@ -265,6 +271,8 @@ body.noite .cal-day.active{background:#3a2a1f;color:#fbbf24}
 body.noite .cal-day.head{color:#cbd5e1}
 body.noite .chart-select{background:#0f172a;border-color:#475569;color:#e2e8f0}
 body.noite .small-note{color:#94a3b8}
+body.noite .med-campo span{color:#94a3b8}
+body.noite .med-campo input,body.noite .med-peso input{background:#0f172a;border-color:#475569;color:#e2e8f0}
 body.noite .mini-stat{border-top-color:#334155}
 body.noite .mini-stat span{color:#94a3b8}
 body.noite .mini-stat b{color:#e2e8f0}
@@ -330,6 +338,11 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
   <div class="secao"><h2>Evolução das cargas</h2><p>Selecione um exercício para visualizar a maior carga registrada em cada dia.</p>
   <select class="chart-select" id="selecionarExercicio" aria-label="Selecionar exercício"></select>
   <div class="chart-wrap" id="graficoCargas"></div><div class="small-note">A evolução de cargas é apenas um registro, não uma meta a ser superada a cada sessão.</div></div>
+  <div class="secao"><h2>Meu peso e altura</h2><p>Registre sua altura e o peso de cada dia para acompanhar a evolução.</p>
+  <div class="medidas"><label class="med-campo"><span>Altura (cm)</span><input type="text" id="inAltura" inputmode="decimal" placeholder="173" aria-label="Altura em centímetros"></label></div>
+  <div class="med-peso"><input type="text" id="inPeso" inputmode="decimal" placeholder="72" aria-label="Peso de hoje em kg"><button class="btn" id="btnRegistrarPeso" type="button">Registrar peso de hoje</button></div>
+  <div class="muted" id="pesoMsg" role="status" aria-live="polite"></div>
+  <div class="chart-wrap" id="graficoPeso"></div><div class="small-note">O peso só aparece no gráfico nos dias em que você registrar aqui.</div></div>
   <div class="secao"><h2>Resumo da atividade</h2><div id="resumoEvolucao"></div></div>
   <div class="secao"><h2>Seus dados</h2><p>Os registros ficam salvos neste navegador. Com login configurado, o aplicativo também tenta sincronizar com o Firebase.</p>
   <button class="btn" id="exportarCSV" type="button" style="width:100%">Exportar histórico de cargas (CSV)</button></div>
@@ -609,6 +622,7 @@ function carregar(){
   if(!Object.keys(j.treinos).length){BASE.forEach(function(t){j.treinos[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})})}
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
+  if(!j.medidas||typeof j.medidas!=='object')j.medidas={altura:'',pesos:{}};
   if(!j.nomes||typeof j.nomes!=='object')j.nomes={};
   if(!j.concluidos||typeof j.concluidos!=='object')j.concluidos={};
   return migrarConclusoes(j);
@@ -917,6 +931,7 @@ function montarDoc(){
     pesos:dados.pesos,
     nomes:dados.nomes,
     concluidos:dados.concluidos,
+    medidas:dados.medidas,
     nome:(usuario&&usuario.displayName)||'',
     email:(usuario&&usuario.email)||'',
     atualizadoEm:Date.now()
@@ -926,7 +941,7 @@ function agendarEnvio(){
  if(!usuario||!syncPronto)return;
  clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
 }
-function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{}])}
+function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{}])}
 function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
 async function enviarNuvem(forcar){
  if(!usuario||syncOcupado)return;
@@ -962,7 +977,7 @@ async function baixarNuvem(){
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
    if(assinatura(remote)!==assinatura(dados)&&ehPadrao()){
     localStorage.removeItem(CHAVE+'_antes_sincronizar');
-    dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{}};
+    dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
     atualizarOrdem();garantirTreinoAtual();
     alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
    }
@@ -1066,7 +1081,7 @@ document.getElementById('arquivoBackup').onchange=async function(){
   const obj=JSON.parse(await f.text());
   if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!Object.keys(obj.dados.treinos).length||!obj.dados.progresso||!obj.dados.pesos||!Object.values(obj.dados.treinos).every(a=>Array.isArray(a)))throw Error('formato');
   if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
-  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{}};
+  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{},medidas:(obj.dados.medidas&&typeof obj.dados.medidas==='object')?obj.dados.medidas:{altura:'',pesos:{}}};
   atualizarOrdem();garantirTreinoAtual();
   migrarConclusoes(dados);salvar();render();mostrarStatus(localSalvo?'Backup importado e salvo neste navegador.':'Backup carregado, mas não salvo. Exporte os dados antes de fechar.');
  }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
@@ -1134,8 +1149,50 @@ function renderGrafico(){
  box.replaceChildren(svg);
 }
 document.getElementById('selecionarExercicio').onchange=renderGrafico;
+function medidasAtuais(){if(!dados.medidas||typeof dados.medidas!=='object')dados.medidas={altura:'',pesos:{}};if(!dados.medidas.pesos||typeof dados.medidas.pesos!=='object')dados.medidas.pesos={};if(typeof dados.medidas.altura!=='number')dados.medidas.altura='';return dados.medidas}
+let pesoMsgTimer=null;
+function avisarPeso(m){const el=document.getElementById('pesoMsg');if(!el)return;el.textContent=m;clearTimeout(pesoMsgTimer);pesoMsgTimer=setTimeout(function(){el.textContent=''},4000)}
+function registrarPesoHoje(){
+  const inp=document.getElementById('inPeso');
+  const txt=inp.value.trim().replace(',','.');
+  if(!/^\d+(\.\d{1,2})?$/.test(txt)||Number(txt)<=0){inp.focus();avisoPeso();return}
+  const m=medidasAtuais();m.pesos[hoje()]=Math.round(Number(txt)*10)/10;
+  salvar();avisarPeso('Peso de hoje registrado: '+inp.value.replace(',','.')+' kg');
+}
+function avisoPeso(){
+  const el=document.getElementById('pesoMsg');if(!el)return;el.textContent='Informe um peso válido, como 72,5.';clearTimeout(pesoMsgTimer);pesoMsgTimer=setTimeout(function(){el.textContent=''},4000);
+}
+document.getElementById('inAltura').addEventListener('change',function(){
+  const txt=this.value.trim().replace(',','.');
+  if(!/^\d{2,3}$/.test(txt)||Number(txt)<100||Number(txt)>260)return;
+  const m=medidasAtuais(),a=Math.round(Number(txt));
+  if(m.altura!==a){m.altura=a;salvar();avisarPeso('Altura salva: '+a+' cm')}
+});
+document.getElementById('btnRegistrarPeso').onclick=registrarPesoHoje;
+document.getElementById('inPeso').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();registrarPesoHoje()}});
+function renderPeso(){
+  const m=medidasAtuais();
+  const ialt=document.getElementById('inAltura'),ipes=document.getElementById('inPeso');
+  if(ialt)ialt.value=m.altura!==''?String(m.altura):'';
+  if(ipes){const hp=m.pesos[hoje()];ipes.value=(hp!=null)?String(hp).replace('.',','):''}
+  const box=document.getElementById('graficoPeso');if(!box)return;
+  const regs=Object.keys(m.pesos).map(d=>{const v=Number(m.pesos[d]);return Number.isFinite(v)?{d,v}:null}).filter(x=>x).sort((a,b)=>a.d.localeCompare(b.d)).slice(-20);
+  if(!regs.length){box.innerHTML='<div class="muted" style="padding:14px 0;font-size:14px">Nenhum peso registrado ainda. Digite seu peso e toque em Registrar peso de hoje.</div>';return}
+  const W=340,H=190,left=34,right=12,top=16,bottom=33;
+  const vals=regs.map(r=>r.v),min=Math.min(...vals),max=Math.max(...vals),rng=max-min;
+  const px=i=>left+(regs.length===1?(W-left-right)/2:i*(W-left-right)/(regs.length-1));
+  const py=v=>rng>0?top+(max-v)/rng*(H-top-bottom):top+(H-top-bottom)/2;
+  const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label','Evolução do peso corporal');
+  function el(tag,attrs,txt){const n=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!=null)n.textContent=txt;svg.appendChild(n);return n}
+  for(let i=0;i<4;i++){const v=min+rng*i/3,y=py(v);el('line',{x1:left,y1:y,x2:W-right,y2:y,stroke:'#e3e5dc','stroke-dasharray':'3 4'});el('text',{x:3,y:y+4,fill:'#73796d','font-size':10},fmtNum(v)+' kg')}
+  el('polyline',{points:regs.map((r,i)=>px(i)+','+py(vals[i])).join(' '),fill:'none',stroke:'#2f855a','stroke-width':2.5,'stroke-linejoin':'round'});
+  regs.forEach((r,i)=>{const c=el('circle',{cx:px(i),cy:py(vals[i]),r:4,fill:'#2f855a'});const title=document.createElementNS(NS,'title');title.textContent=r.d+': '+fmtNum(vals[i])+' kg';c.appendChild(title)});
+  [0,regs.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>el('text',{x:px(i),y:H-10,fill:'#73796d','font-size':11,'text-anchor':'middle'},fmtData(regs[i].d)));
+  box.replaceChildren(svg);
+}
 function renderEvolucao(){
- renderCalendario();renderGrafico();
+  renderCalendario();renderGrafico();renderPeso();
  const dias=diasComTreino(),hojeN=hoje(),mes=hojeN.slice(0,7);
  const itens=[['Dias com atividade registrada',dias.length],['Dias com atividade neste mês',dias.filter(d=>d.startsWith(mes)).length],['Exercícios com histórico de cargas',historicosDisponiveis().length],['Último dia registrado',dias.length?fmtData(dias.slice().sort().at(-1)):'Nenhum']];
  const box=document.getElementById('resumoEvolucao');box.replaceChildren();
