@@ -37,5 +37,22 @@ service cloud.firestore {
       allow update: if isProf(request.auth.uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['treinos']);
     }
+
+    // Planos publicados: aluno consulta; professor edita.
+    match /planosProfessor/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || isProf(request.auth.uid));
+      allow create, update: if request.auth != null && isProf(request.auth.uid)
+        && request.resource.data.keys().hasOnly(['versao', 'ficha', 'treinos', 'nomes', 'alimentar', 'uid', 'professorUid', 'alunoNome', 'atualizadoEm', 'revisao'])
+        && request.resource.data.uid == uid
+        && request.resource.data.professorUid == request.auth.uid
+        && request.resource.data.ficha is map
+        && request.resource.data.treinos is map
+        && request.resource.data.nomes is map
+        && request.resource.data.alimentar is map
+        && request.resource.data.alimentar.refeicoes is list
+        && request.resource.data.revisao is string;
+      allow delete: if request.auth != null && isProf(request.auth.uid);
+    }
   }
 }

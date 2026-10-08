@@ -309,6 +309,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #bannerAluno button{background:#fff;color:#b45309;border:0;padding:8px 12px;border-radius:8px;font-weight:700;font-size:13px}
 #modalProfessor .caixa{max-width:560px}
 </style>
+<link rel="stylesheet" href="professor.css?v=1">
 </head>
 <body>
 <header>
@@ -321,6 +322,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
     <button class="btn" id="btnEditar" hidden>Editar</button>
     <button class="btn" id="btnConta" type="button">Entrar</button>
+    <button class="btn" id="pAcesso" type="button" hidden>Professor</button>
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
@@ -328,6 +330,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
+<button class="btn" id="irPlanos" type="button" aria-pressed="false" hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>Meus planos</button>
 </div>
 <div id="viewTreinos">
 <section class="welcome" id="boasVindas"><div class="eyebrow">ACADEMIA TENDA</div><h2>Seu treino.<br>Seu ritmo.</h2><p>Um espaço para organizar sua rotina e acompanhar cada conquista.</p></section>
@@ -409,15 +412,23 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   </div>
 </div>
 
-<div class="overlay" id="modalProfessor" hidden>
-  <div class="caixa prof-painel">
-    <h2>Painel do professor</h2>
-    <input id="profBusca" type="search" placeholder="Buscar aluno por nome ou e-mail">
-    <div id="profPedidos"></div>
-    <div id="profLista"></div>
-    <button class="btn" id="btnFecharProf">Fechar</button>
-  </div>
+<div class="overlay" id="modalProfessor" hidden role="dialog" aria-modal="true" aria-labelledby="pTitulo">
+ <div class="caixa prof-painel">
+  <div class="p-top"><div><div class="eyebrow">ÁREA DO PROFESSOR</div><h2 id="pTitulo">Planeje. Oriente. Acompanhe.</h2><p>Treinos e refeições organizados para cada aluno.</p></div><button class="btn" id="btnFecharProf" type="button">Fechar</button></div>
+  <div class="p-layout"><aside class="p-sidebar"><div class="p-sidebar-head"><strong>Seus alunos</strong><span class="small-note" id="pTotal"></span></div><label class="small-note" for="profBusca">Buscar por nome ou e-mail</label><input id="profBusca" type="search" placeholder="Encontrar aluno…"><button class="btn" id="pAtualizar" type="button">Atualizar lista</button><div id="profPedidos"></div><div id="pAlunos"></div><div id="profLista" hidden></div></aside>
+  <main><div id="profMensagem" class="p-mensagem" role="status" aria-live="polite"></div><div id="pVazio" class="p-vazio">Selecione um aluno para criar ou editar seu plano.</div>
+   <div id="pEditor" hidden><div class="p-editor-head"><div><h3 id="pAlunoNome"></h3><span class="small-note" id="pAlunoEmail"></span></div><button class="btn" id="pExportar" type="button">Backup do rascunho</button></div>
+    <div class="p-tabs" aria-label="Editor de planos"><button class="btn acc" id="pBtn-treino" type="button">Treinos</button><button class="btn" id="pBtn-ficha" type="button">Ficha</button><button class="btn" id="pBtn-alimentar" type="button">Alimentação</button><button class="btn" id="pBtn-previa" type="button">Prévia</button></div>
+    <section id="pTab-treino"><div class="p-footer"><button class="btn" id="pAdicionarTreino" type="button">+ Novo treino</button><button class="btn" id="pCopiarMeus" type="button">Copiar meus treinos</button></div><div id="pTreinos"></div></section>
+    <section id="pTab-ficha" hidden><div id="pFicha" class="p-form-grid"></div></section>
+    <section id="pTab-alimentar" hidden><p class="small-note">Registre o plano definido pelo profissional responsável, com alimentos, quantidades e substituições.</p><div id="pInfoAlimentar" class="p-form-grid"></div><div id="pRefeicoes"></div><button class="btn" id="pAdicionarRefeicao" type="button">+ Refeição</button></section>
+    <section id="pTab-previa" hidden><button class="btn" id="pImprimir" type="button">Imprimir / Salvar PDF</button><div id="pPrevia" class="p-folha"></div></section>
+    <div class="p-footer"><button class="btn" id="pSoTreino" type="button">Enviar só treinos</button><button class="btn acc" id="pPublicar" type="button">Publicar plano completo</button></div><p class="small-note">Editar salva um rascunho neste navegador. Publicar envia o plano ao aluno.</p>
+   </div></main></div>
+ </div>
 </div>
+<section id="viewPlanos" hidden><div class="p-consulta-head"><h2>Meus planos</h2><button class="btn" id="pAlunoAtualizar" type="button">Atualizar</button><button class="btn" id="pAlunoImprimir" type="button" hidden>Imprimir / Salvar PDF</button></div><div id="alunoPlano" class="p-folha"></div></section>
+<div id="pImpressao"></div>
 
 <div class="overlay" id="modalHist" hidden>
   <div class="caixa">
@@ -1589,8 +1600,10 @@ if(temConfig()){
   });
 }
 </script>
+<script src="professor.js?v=1"></script>
 </body>
 </html>
+
 
 
 
