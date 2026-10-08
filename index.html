@@ -592,7 +592,7 @@ function abrirBusca(q){
 }
 document.getElementById('btnBuscar').onclick=function(){abrirBusca(document.getElementById('buscaQuery').value)};
 document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(e.key==='Enter')abrirBusca(this.value)});
-let dados, treinoAtual='A', editando=false, focarNovo=false, sessaoAluno=null, meuPerfil=null;
+let ultimoUid=null;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
 function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg;mostrarToast(msg)}
@@ -1307,11 +1307,17 @@ async function iniciarAuth(){
     atualizarBtnInstalar();
     atualizaBotaoConta();
     if(u){
-     render();
-     baixarNuvem();
-     garantirPerfil();
-    }else{
-     const tinha=!!dados&&temConteudo(dados);
+      if(ultimoUid&&ultimoUid!==u.uid){
+        limparDadosNavegador();
+        statusSalvar('Conta trocada. Carregando seus dados...');
+      }
+      ultimoUid=u.uid;
+      render();
+      baixarNuvem();
+      garantirPerfil();
+  }else{
+      ultimoUid=null;
+      const tinha=!!dados&&temConteudo(dados);
      limparDadosNavegador();
      if(tinha)statusSalvar('Você saiu da conta: este navegador foi esvaziado. Entre na sua conta para recuperar seus dados.');
     }
