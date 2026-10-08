@@ -170,6 +170,81 @@ h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
 @media(min-width:760px){#lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.welcome h2{font-size:40px}.week-card{padding:24px}.week-dot{max-width:48px}.week-days{max-width:520px}.item{min-height:144px}}
 @media(max-width:390px){header{padding:16px}.topo{gap:5px}.topo .btn{font-size:12px;padding:8px 10px}.welcome,.week-card{margin-left:16px;margin-right:16px}.welcome h2{font-size:27px}#lista,.progresso{margin-left:16px;margin-right:16px}.painel{margin-left:16px;margin-right:16px}nav{padding:0 16px}.week-days{gap:5px}.item{padding:14px}}
 
+#btnNoite{width:42px;padding:0;justify-content:center;flex-shrink:0}
+#btnConcluir{width:calc(100% - 48px);margin:6px 24px 0;padding:14px 0;font-size:15px;justify-content:center}
+/* Modo noturno */
+body.noite{background:#0f172a;color:#e2e8f0}
+body.noite header{background:rgba(15,23,42,.96);border-bottom-color:#1e293b}
+body.noite .btn{background:#1e293b;color:#e2e8f0;border-color:#334155}
+body.noite .btn.acc{background:#ee713a;border-color:#ee713a;color:#fff}
+body.noite .btn.av{background:#ee713a;border-color:#ee713a;color:#fff}
+body.noite .btn.warn{color:#fbbf24;border-color:#78590f}
+body.noite .aba{background:#1e293b;border-color:#334155;color:#94a3b8}
+body.noite .aba.ativa{background:#22251f;border-color:#22251f;color:#fff}
+body.noite .aba input{border-bottom-color:#64748b}
+body.noite .welcome h2{color:#e2e8f0}
+body.noite .welcome p{color:#94a3b8}
+body.noite .section-label{color:#e2e8f0}
+body.noite .week-card{background:#1e293b}
+body.noite .week-top strong{color:#e2e8f0}
+body.noite .week-top span{color:#94a3b8}
+body.noite .week-day{color:#94a3b8}
+body.noite .week-dot{background:#0f172a;color:#94a3b8}
+body.noite .week-day.active .week-dot{background:#ee713a;color:#fff}
+body.noite .week-day.today .week-dot{outline-color:#e2e8f0}
+body.noite .indicador{background:#1e293b;border-color:#334155}
+body.noite .indicador strong{color:#ee713a}
+body.noite .indicador span{color:#94a3b8}
+body.noite .progresso{background:#22251f;border-color:#1e293b}
+body.noite .ptxt{color:#bec4b5}
+body.noite .item{background:#1e293b;border-color:#334155;box-shadow:none}
+body.noite .check{border-color:#64748b}
+body.noite .item.done .check{background:#ee713a;border-color:#ee713a;color:#fff}
+body.noite .nome{color:#e2e8f0}
+body.noite .item.done .nome{color:#64748b}
+body.noite .meta{color:#94a3b8}
+body.noite .histbtn{border-color:#78590f;color:#fbbf24}
+body.noite .sp{background:#0f172a;border-color:#334155}
+body.noite .sp b{color:#64748b}
+body.noite .sp input{color:#fbbf24}
+body.noite .sp input::placeholder{color:#475569}
+body.noite .sp:focus-within{border-color:#ee713a}
+body.noite .edicao input{background:#0f172a;border-color:#475569;color:#e2e8f0}
+body.noite .edicao input:focus{border-color:#ee713a}
+body.noite .thumb{border-color:#334155;background:#0f172a}
+body.noite .thumb .semfoto{color:#475569}
+body.noite .foto{border-color:#334155;color:#cbd5e1}
+body.noite .cardio{background:#172033;border-color:#334155;color:#94a3b8}
+body.noite .cardio b{color:#fbbf24}
+body.noite .aviso{background:#3b2f0b;border-color:#78590f;color:#fbbf24}
+body.noite .vazio{background:#1e293b;border-color:#334155;color:#64748b}
+body.noite .secao{background:#1e293b;border-color:#334155}
+body.noite .secao h2{color:#e2e8f0}
+body.noite .secao p{color:#94a3b8}
+body.noite .caixa{background:#1e293b;border:1px solid #334155;box-shadow:0 20px 80px #00000099}
+body.noite .caixa input{background:#0f172a;border-color:#475569;color:#e2e8f0}
+body.noite .caixa input:focus{border-color:#ee713a}
+body.noite .muted{color:#94a3b8}
+body.noite .avatar{background:#ee713a;color:#fff}
+body.noite .divis{color:#64748b}
+body.noite .divis::before,body.noite .divis::after{background:#334155}
+body.noite .histlinha{background:#0f172a;border-color:#334155}
+body.noite .histlinha .d{color:#94a3b8}
+body.noite .histlinha .up{color:#4ade80}
+body.noite .histlinha .down{color:#f87171}
+body.noite .histlinha .flat{color:#64748b}
+body.noite .view-switch{background:rgba(15,23,42,.97);border-top-color:#1e293b}
+body.noite .view-switch .btn{color:#94a3b8}
+body.noite .view-switch .selecionado{color:#fff;background:#22251f}
+body.noite .cal-day{color:#94a3b8}
+body.noite .cal-day.active{background:#3a2a1f;color:#fbbf24}
+body.noite .cal-day.head{color:#cbd5e1}
+body.noite .chart-select{background:#0f172a;border-color:#475569;color:#e2e8f0}
+body.noite .small-note{color:#94a3b8}
+body.noite .mini-stat{border-top-color:#334155}
+body.noite .mini-stat span{color:#94a3b8}
+body.noite .mini-stat b{color:#e2e8f0}
+body.noite #statusDados{color:#94a3b8}
 </style>
 </head>
 <body>
@@ -179,6 +254,7 @@ h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
     <button class="btn" id="btnEditar" hidden>Editar</button>
     <button class="btn" id="btnConta" hidden>Entrar</button>
+    <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
 <div class="view-switch" aria-label="Seções do aplicativo">
@@ -206,6 +282,7 @@ h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
   <div class="barra"><div id="barraFill"></div></div>
   <div class="ptxt"><span id="progTexto">0/0 (0%)</span><span id="dataTexto"></span></div>
 </section>
+<button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <div class="cardio">Atividade complementar: <b>personalize conforme sua rotina</b> — bike, caminhada ou elíptico</div>
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
@@ -650,6 +727,27 @@ document.getElementById('btnLimpar').onclick=function(){
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
   feitos().length=0; salvar(); render();
 };
+document.getElementById('btnConcluir').onclick=function(){
+  const arr=(dados.treinos[treinoAtual]||[]).filter(function(e){return String(e.nome||'').trim()});
+  if(!arr.length){mostrarStatus('Não há exercícios no Treino '+treinoAtual+' para concluir.');return}
+  const f=feitos();let mudou=false;
+  arr.forEach(function(e){if(f.indexOf(e.id)<0){f.push(e.id);mudou=true}});
+  if(mudou){salvar();render();mostrarStatus('Treino '+treinoAtual+' concluído e salvo.')}
+  else{mostrarStatus('Treino '+treinoAtual+' já estava concluído hoje.')}
+};
+const CHAVE_NOITE='academia_noite';
+function aplicarNoite(n){
+  document.body.classList.toggle('noite',!!n);
+  try{localStorage.setItem(CHAVE_NOITE,n?'1':'0')}catch(e){}
+}
+document.getElementById('btnNoite').onclick=function(){
+  aplicarNoite(!document.body.classList.contains('noite'));
+};
+(function(){
+  let n='0';
+  try{n=localStorage.getItem(CHAVE_NOITE)||'0'}catch(e){}
+  aplicarNoite(n==='1');
+})();
 document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
 function erroComCodigo(c){const e=new Error(c);e.code=c;return e}
