@@ -151,6 +151,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #ee713a;outline-offse
 .med-peso{display:flex;gap:8px;margin:12px 0 4px}
 .med-peso input{flex:1;min-width:0}
 .med-peso .btn{flex-shrink:0;padding:12px 14px;white-space:normal}body{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
+#toastStatus{position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:#22251f;color:#ffffff;border-radius:30px;padding:11px 20px;font-size:13.5px;line-height:1.4;font-weight:600;max-width:min(92vw,440px);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:99;box-shadow:0 10px 34px #22251f45}
+#toastStatus.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(min-width:900px){body{max-width:900px}.evolucao{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evolucao .secao{margin-top:14px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
@@ -386,11 +388,12 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
   </div>
 </div>
 
+<div id="toastStatus" role="status" aria-live="assertive"></div>
 <script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 const CHAVE='academia_v3';
-function mostrarStatus(msg){const el=document.getElementById('statusDados');if(el)el.textContent=msg}
+function mostrarStatus(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg;mostrarToast(msg)}
 function renderSemana(){
  const root=document.getElementById('weekDays');if(!root)return;
  const now=new Date(),start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));
@@ -536,7 +539,13 @@ document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
-function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg}
+function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg;mostrarToast(msg)}
+let toastTimer=null;
+function mostrarToast(msg){
+ const t=document.getElementById('toastStatus');if(!t||!msg)return;
+ t.textContent=msg;t.classList.add('on');
+ clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on')},3500);
+}
 function migrarConclusoes(j){
  j.progresso=j.progresso||{};
  for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of Object.keys(j.treinos||{})){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
