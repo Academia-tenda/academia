@@ -954,15 +954,20 @@ const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data())
    });
    if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;syncPronto=true;statusSalvar(forza?'Enviado para a nuvem: a versão deste navegador agora está salva na sua conta.':'Salvo neste navegador e na nuvem')}
   }catch(e){
+   const det=e&&(e.code||e.message)?String(e.code||e.message).slice(0,90):'desconhecido';
+   console.error('enviarNuvem falhou',e);
    if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Toque em Sincronizar para enviar a versão deste navegador.')}
    else if(e.code==='nuvem-tem-dados'){syncPronto=false;statusSalvar('Sua conta já tem dados na nuvem e este navegador está vazio. Carregando os dados da conta...');setTimeout(baixarNuvem,400)}
-   else statusSalvar(localSalvo?'Salvo neste navegador · nuvem pendente. Tente sincronizar novamente.':'Salvamento falhou. Exporte um backup antes de fechar.');
+   else statusSalvar(localSalvo?('Salvo neste navegador · falha ao enviar ('+det+'). Tente novamente.'):'Salvamento falhou ('+det+'). Exporte um backup antes de fechar.');
  }finally{syncOcupado=false;if(!forza&&syncPronto&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
  if(!usuario)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
  try{
-  const fb=await getFB();const snap=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',uid));
+  const fb=await getFB();
+  const ref=fb.F.doc(fb.db,'usuarios',uid);
+  let snap=null;
+  try{snap=await fb.F.getDoc(ref)}catch(erro1){if(!usuario||usuario.uid!==uid)return;snap=await fb.F.getDoc(ref)}
   if(!usuario||usuario.uid!==uid)return;
   const c=snap.exists()?snap.data():null;
   baseNuvem=c?versaoNuvem(c):null;
@@ -970,7 +975,7 @@ async function baixarNuvem(){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
+   if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
      localStorage.removeItem(CHAVE+'_antes_sincronizar');
      dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
      atualizarOrdem();garantirTreinoAtual();
@@ -981,7 +986,11 @@ if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||tre
     }
    }
   syncPronto=true;sincronizado=-1;agendarEnvio();
- }catch(e){statusSalvar(localSalvo?'Salvo neste navegador · não foi possível carregar a nuvem. Tente novamente.':'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.')}
+ }catch(e){
+  const det=e&&(e.code||e.message)?String(e.code||e.message).slice(0,90):'erro desconhecido';
+  console.error('baixarNuvem falhou',e);
+  statusSalvar(localSalvo?('Não foi possível carregar a nuvem ('+det+'). Tente novamente.'):'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.');
+ }
 }
 document.getElementById('btnSincronizar').onclick=function(){
   if(!usuario)return;
