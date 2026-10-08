@@ -63,6 +63,7 @@ body.editando .edicao{display:flex}
 .edicao .r{width:78px}
 .thumb{width:44px;height:44px;min-width:44px;border-radius:9px;overflow:hidden;border:1px solid #334155;background:#0f172a;padding:0;cursor:pointer}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .semfoto{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;color:#475569;letter-spacing:1px}
 body.editando .thumb{display:none}
 .foto{background:none;border:1px solid #334155;color:#cbd5e1;border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;align-self:flex-end;font-family:inherit}
 .delFoto{border-color:#7f1d1d;color:#f87171}
@@ -430,8 +431,8 @@ function render(){
       const ti=document.createElement('img');
       ti.src=imgDe(ex); ti.alt=ex.nome;
       ti.onerror=function(){
-        ti.src=imgDe(ex)+'?v=1';
-        ti.onerror=function(){tb.hidden=true};
+        if(!tb.dataset.v){tb.dataset.v='1';ti.src=imgDe(ex)+'?v=1';return}
+        tb.innerHTML='<span class="semfoto">Foto</span>';
       };
       tb.appendChild(ti);
       tb.onclick=function(){abrirImagem(ex)};
