@@ -960,13 +960,11 @@ async function baixarNuvem(){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-   if(assinatura(remote)!==assinatura(dados)){
-    if(confirm('Há dados diferentes na conta. OK: carregar a versão da nuvem. Cancelar: manter a versão deste navegador e enviá-la à conta. Uma cópia de segurança local será guardada antes da troca.')){
-     try{localStorage.setItem(CHAVE+'_antes_sincronizar',JSON.stringify(dados))}catch(e){statusSalvar('Não foi possível guardar a cópia. Exporte um backup antes de trocar a versão.');return}
-     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{}};
-     atualizarOrdem();garantirTreinoAtual();
-     alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
-    }
+   if(assinatura(remote)!==assinatura(dados)&&ehPadrao()){
+    localStorage.removeItem(CHAVE+'_antes_sincronizar');
+    dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{}};
+    atualizarOrdem();garantirTreinoAtual();
+    alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
    }
   }
   syncPronto=true;sincronizado=-1;agendarEnvio();
