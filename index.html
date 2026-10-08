@@ -182,14 +182,7 @@ body.editando .busca-vid{display:none}
 .busca-ex{border:0;background:#eef1e6;color:#73796d;padding:4px 9px;font-size:10px;cursor:pointer;font-family:inherit}
 .busca-ex:active{color:#ee713a}
 body.editando .busca-ex{display:none}
-#modalBusca .caixa{max-width:660px;width:min(94vw,660px)}
-#buscaForm{display:flex;gap:8px}
-#buscaForm input{flex:1;margin-bottom:0}
-#buscaForm .btn{flex-shrink:0;padding:12px 18px;align-items:center;justify-content:center}
-.busca-aviso{font-size:12px;color:#73796d;margin:10px 0;line-height:1.5}
-.vid-wrap{position:relative;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;margin:0 0 14px}
-.vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-#btnFecharBusca{width:100%;padding:12px}
+#btnSincronizar{margin:0 auto;display:inline-block;min-width:150px}
 /* Modo noturno */
 body.noite{background:#0f172a;color:#e2e8f0}
 body.noite header{background:rgba(15,23,42,.96);border-bottom-color:#1e293b}
@@ -266,8 +259,6 @@ body.noite #statusDados{color:#94a3b8}
 body.noite .busca-vid input{background:#0f172a;border-color:#475569;color:#e2e8f0}
 body.noite .busca-vid input:focus{border-color:#ee713a}
 body.noite .busca-ex{background:#0f172a;color:#94a3b8}
-body.noite .busca-aviso{color:#94a3b8}
-body.noite #buscaModalInput{background:#0f172a;border-color:#475569;color:#e2e8f0}
 </style>
 </head>
 <body>
@@ -280,7 +271,7 @@ body.noite #buscaModalInput{background:#0f172a;border-color:#475569;color:#e2e8f
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
-<div id="statusSalvamento" role="status" aria-live="polite" style="padding:12px 24px;text-align:center;font-size:12px"></div><div style="text-align:center"><button class="btn" id="btnSincronizar" type="button" hidden>Tentar sincronizar</button></div>
+<div id="statusSalvamento" role="status" aria-live="polite" style="padding:12px 24px;text-align:center;font-size:12px"></div><div style="text-align:center"><button class="btn acc" id="btnSincronizar" type="button" hidden>Sincronizar</button></div>
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
@@ -310,7 +301,7 @@ body.noite #buscaModalInput{background:#0f172a;border-color:#475569;color:#e2e8f
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
 <div class="busca-vid">
-  <input type="search" id="buscaQuery" placeholder="Buscar vídeo do exercício (ex.: supino)…" enterkeyhint="search" aria-label="Buscar vídeo do exercício">
+  <input type="search" id="buscaQuery" placeholder="Buscar vídeo do exercício (abre o YouTube)…" enterkeyhint="search" aria-label="Buscar vídeo do exercício">
   <button type="button" class="btn" id="btnBuscar" aria-label="Buscar vídeo"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
 </div>
 <button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
@@ -371,19 +362,6 @@ body.noite #buscaModalInput{background:#0f172a;border-color:#475569;color:#e2e8f
     <img id="imgGrande" alt="">
     <div class="muted" id="imgLegenda"></div>
     <button class="btn" id="btnFecharImg">Fechar</button>
-  </div>
-</div>
-
-<div class="overlay" id="modalBusca" hidden>
-  <div class="caixa">
-    <h2 id="buscaTitulo">Buscar vídeo do exercício</h2>
-    <form id="buscaForm">
-      <input type="search" id="buscaModalInput" placeholder="Nome do exercício…" enterkeyhint="search" aria-label="Buscar vídeos">
-      <button class="btn acc" type="submit">Buscar</button>
-    </form>
-    <div class="busca-aviso">É preciso estar com internet. Toque em um vídeo para assistir; para voltar, use a tecla Voltar.</div>
-    <div class="vid-wrap"><iframe id="vidFrame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen title="Resultados de busca"></iframe></div>
-    <button class="btn" id="btnFecharBusca">Fechar</button>
   </div>
 </div>
 
@@ -491,17 +469,11 @@ document.getElementById('btnFecharImg').onclick=function(){document.getElementBy
 document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 function abrirBusca(q){
   const txt=String(q||'').trim().replace(/\s+/g,' ');
-  const titulo=document.getElementById('buscaTitulo'), inp=document.getElementById('buscaModalInput');
-  inp.value=txt;
-  titulo.textContent=txt?'Vídeos: '+txt:'Buscar vídeo do exercício';
-  document.getElementById('vidFrame').src=txt?('https://www.youtube.com/embed/videoseries?listType=search&list='+encodeURIComponent(txt)+'&hl=pt-BR&rel=0'):'about:blank';
-  document.getElementById('modalBusca').hidden=false;
+  if(!txt)return;
+  window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(txt),'_blank');
 }
 document.getElementById('btnBuscar').onclick=function(){abrirBusca(document.getElementById('buscaQuery').value)};
 document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(e.key==='Enter')abrirBusca(this.value)});
-document.getElementById('buscaForm').onsubmit=function(e){e.preventDefault();abrirBusca(document.getElementById('buscaModalInput').value)};
-document.getElementById('btnFecharBusca').onclick=function(){document.getElementById('modalBusca').hidden=true};
-document.getElementById('modalBusca').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
@@ -908,8 +880,10 @@ function agendarEnvio(){
 }
 function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{}])}
 function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
-async function enviarNuvem(){
- if(!usuario||!syncPronto||syncOcupado||sincronizado===alteracao)return;
+async function enviarNuvem(forcar){
+ if(!usuario||syncOcupado)return;
+ const forza=!!forcar;
+ if(!forza&&(!syncPronto||sincronizado===alteracao))return;
  syncOcupado=true;const uid=usuario.uid,seq=alteracao,expected=baseNuvem;
  const payload=JSON.parse(JSON.stringify(montarDoc()));payload.revisao=id();
  statusSalvar(localSalvo?'Salvo neste navegador · sincronizando…':'Sem cópia local · sincronizando…');
@@ -917,15 +891,15 @@ async function enviarNuvem(){
   const fb=await getFB();const ref=fb.F.doc(fb.db,'usuarios',uid);
   await fb.F.runTransaction(fb.db,async tx=>{
    const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data()):null;
-   if(remote!==expected)throw erroComCodigo('conflito');
+   if(remote!==expected&&!forza)throw erroComCodigo('conflito');
    if(!usuario||usuario.uid!==uid)throw erroComCodigo('conta-alterada');
    tx.set(ref,payload);
   });
-  if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;statusSalvar(localSalvo?'Salvo neste navegador e na nuvem':'Salvo na nuvem · cópia local indisponível')}
+  if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;syncPronto=true;statusSalvar(forza?'Enviado para a nuvem: a versão deste navegador agora está salva na sua conta.':'Salvo neste navegador e na nuvem')}
  }catch(e){
-  if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Seus dados locais foram mantidos. Toque em Tentar sincronizar para escolher a versão.')}
+  if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Toque em Sincronizar para enviar a versão deste navegador.')}
   else statusSalvar(localSalvo?'Salvo neste navegador · nuvem pendente. Tente sincronizar novamente.':'Salvamento falhou. Exporte um backup antes de fechar.');
- }finally{syncOcupado=false;if(syncPronto&&alteracao!==seq)agendarEnvio()}
+ }finally{syncOcupado=false;if(!forza&&syncPronto&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
  if(!usuario)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
@@ -937,7 +911,7 @@ async function baixarNuvem(){
   if(c){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!ORDEM.every(t=>Array.isArray(remote.treinos[t])))throw Error('Dados da nuvem inválidos');
-   if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Tentar sincronizar para escolher a versão.');return}
+   if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
    if(assinatura(remote)!==assinatura(dados)){
     if(confirm('Há dados diferentes na conta. OK: carregar a versão da nuvem. Cancelar: manter a versão deste navegador e enviá-la à conta. Uma cópia de segurança local será guardada antes da troca.')){
      try{localStorage.setItem(CHAVE+'_antes_sincronizar',JSON.stringify(dados))}catch(e){statusSalvar('Não foi possível guardar a cópia. Exporte um backup antes de trocar a versão.');return}
@@ -949,7 +923,7 @@ async function baixarNuvem(){
   syncPronto=true;sincronizado=-1;agendarEnvio();
  }catch(e){statusSalvar(localSalvo?'Salvo neste navegador · não foi possível carregar a nuvem. Tente novamente.':'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.')}
 }
-document.getElementById('btnSincronizar').onclick=()=>{if(!syncPronto)baixarNuvem();else enviarNuvem()};
+document.getElementById('btnSincronizar').onclick=function(){enviarNuvem(true)};
 window.addEventListener('online',()=>{if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
 
 async function iniciarAuth(){
