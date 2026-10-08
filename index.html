@@ -1013,8 +1013,14 @@ async function iniciarAuth(){
     document.getElementById('btnSincronizar').hidden=!u;
     atualizarBtnInstalar();
     atualizaBotaoConta();
-    render();
-    if(u)baixarNuvem();
+    if(u){
+     render();
+     baixarNuvem();
+    }else{
+     const tinha=!!dados&&temConteudo(dados);
+     limparDadosNavegador();
+     if(tinha)statusSalvar('Você saiu da conta: este navegador foi esvaziado. Entre na sua conta para recuperar seus dados.');
+    }
   });
 }
 document.getElementById('btnConta').onclick=function(){
@@ -1032,6 +1038,17 @@ function abrirLogin(){
 }
 document.getElementById('btnFecharPerfil').onclick=function(){document.getElementById('modalPerfil').hidden=true};
 document.getElementById('modalPerfil').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
+function limparDadosNavegador(){
+  try{localStorage.removeItem(CHAVE)}catch(e){}
+  try{localStorage.removeItem('academia_v2')}catch(e){}
+  try{localStorage.removeItem(CHAVE+'_antes_sincronizar')}catch(e){}
+  dados=carregar();
+  atualizarOrdem();garantirTreinoAtual();treinoAtual=ORDEM[0];
+  alteracao++;
+  try{salvarLocal()}catch(e){}
+  render();atualizarPainel();
+  if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
+}
 document.getElementById('btnSair').onclick=async function(){
   document.getElementById('modalPerfil').hidden=true;
   const tinhaDados=!!usuario&&temConteudo(dados);
@@ -1041,13 +1058,9 @@ document.getElementById('btnSair').onclick=async function(){
    try{await enviarNuvem(true);enviado=true}catch(e){}
   }
   try{const fb=await getFB();await fb.U.signOut(fb.auth)}catch(e){}
-  localStorage.removeItem(CHAVE);
-  localStorage.removeItem('academia_v2');
-  localStorage.removeItem(CHAVE+'_antes_sincronizar');
-  dados=carregar();
-  atualizarOrdem();garantirTreinoAtual();treinoAtual=ORDEM[0];
-  alteracao++;salvarLocal();render();atualizaBotaoConta();
+  atualizaBotaoConta();
   statusSalvar(tinhaDados&&!enviado?'Seus dados foram apagados deste navegador, mas NÃO foi possível salvá-los na conta. Entre novamente e toque em Sincronizar antes de sair.':'Este navegador foi esvaziado. Seus dados continuam guardados na sua conta.');
+  setTimeout(function(){location.reload()},1200);
 };
 document.getElementById('btnSemConta').onclick=function(){document.getElementById('modalLogin').hidden=true};
 document.getElementById('modalLogin').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
