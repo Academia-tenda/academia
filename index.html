@@ -176,6 +176,7 @@ body.editando #btnModelo{display:block}
   </div>
 </div>
 
+<script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 const CHAVE='academia_v3';
@@ -196,7 +197,7 @@ const IMGS={
  'Supino reto com barra':'supino_reto_barra','Abdominal curto':'abdc_curto','Abdominal inferior':'abdc_inferior','Abdominal remador':'abdc_remador'
 };
 function novoItem(nome,series,reps){return{id:id(),nome:nome,series:series,reps:reps,img:IMGS[nome]?('img/'+IMGS[nome]):''}}
-function imgDe(ex){if(ex.img)return ex.img;return IMGS[ex.nome]?('img/'+IMGS[ex.nome]):''}
+function imgDe(ex){if(ex.img)return ex.img;const s=IMGS[ex.nome];if(!s)return '';return (window.FOTOS&&FOTOS[s])||('img/'+s+'.jpg')}
 function fotoPropria(ex){return typeof ex.img==='string'&&ex.img.indexOf('data:')===0}
 function carregarFoto(ex,inp){
   const f=inp.files&&inp.files[0];if(!f)return;
@@ -431,7 +432,7 @@ function render(){
       const ti=document.createElement('img');
       ti.src=imgDe(ex); ti.alt=ex.nome;
       ti.onerror=function(){
-        if(!tb.dataset.v){tb.dataset.v='1';ti.src=imgDe(ex)+'?v=1';return}
+        if(!tb.dataset.v){tb.dataset.v='1';const s=imgDe(ex);if(typeof s==='string'&&s.indexOf('data:')!==0)ti.src=s+'?v=1';return}
         tb.innerHTML='<span class="semfoto">Foto</span>';
       };
       tb.appendChild(ti);
