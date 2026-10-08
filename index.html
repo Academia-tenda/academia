@@ -173,6 +173,23 @@ h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
 #btnNoite{width:42px;padding:0;justify-content:center;flex-shrink:0}
 #btnConcluir{width:calc(100% - 48px);margin:6px 24px 0;padding:14px 0;font-size:15px;justify-content:center}
 body.editando #btnConcluir{display:none}
+/* Busca de vídeo do exercício */
+.busca-vid{display:flex;gap:8px;margin:14px 24px 0}
+.busca-vid input{flex:1;min-width:0;background:#f7f7f2;border:1px solid #c3c8bd;border-radius:14px;color:#22251f;padding:12px 14px;font-family:inherit;font-size:14px}
+.busca-vid input:focus{outline:none;border-color:#ee713a}
+.busca-vid .btn{width:46px;min-width:46px;padding:0;justify-content:center;border-radius:14px;flex-shrink:0}
+body.editando .busca-vid{display:none}
+.busca-ex{border:0;background:#eef1e6;color:#73796d;padding:4px 9px;font-size:10px;cursor:pointer;font-family:inherit}
+.busca-ex:active{color:#ee713a}
+body.editando .busca-ex{display:none}
+#modalBusca .caixa{max-width:660px;width:min(94vw,660px)}
+#buscaForm{display:flex;gap:8px}
+#buscaForm input{flex:1;margin-bottom:0}
+#buscaForm .btn{flex-shrink:0;padding:12px 18px;align-items:center;justify-content:center}
+.busca-aviso{font-size:12px;color:#73796d;margin:10px 0;line-height:1.5}
+.vid-wrap{position:relative;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;margin:0 0 14px}
+.vid-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+#btnFecharBusca{width:100%;padding:12px}
 /* Modo noturno */
 body.noite{background:#0f172a;color:#e2e8f0}
 body.noite header{background:rgba(15,23,42,.96);border-bottom-color:#1e293b}
@@ -246,6 +263,11 @@ body.noite .mini-stat{border-top-color:#334155}
 body.noite .mini-stat span{color:#94a3b8}
 body.noite .mini-stat b{color:#e2e8f0}
 body.noite #statusDados{color:#94a3b8}
+body.noite .busca-vid input{background:#0f172a;border-color:#475569;color:#e2e8f0}
+body.noite .busca-vid input:focus{border-color:#ee713a}
+body.noite .busca-ex{background:#0f172a;color:#94a3b8}
+body.noite .busca-aviso{color:#94a3b8}
+body.noite #buscaModalInput{background:#0f172a;border-color:#475569;color:#e2e8f0}
 </style>
 </head>
 <body>
@@ -287,6 +309,10 @@ body.noite #statusDados{color:#94a3b8}
 <div class="cardio">Atividade complementar: <b>personalize conforme sua rotina</b> — bike, caminhada ou elíptico</div>
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
+<div class="busca-vid">
+  <input type="search" id="buscaQuery" placeholder="Buscar vídeo do exercício (ex.: supino)…" enterkeyhint="search" aria-label="Buscar vídeo do exercício">
+  <button type="button" class="btn" id="btnBuscar" aria-label="Buscar vídeo"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+</div>
 <button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
 <button class="btn" id="btnModelo">Carregar modelo (A–E)</button>
@@ -345,6 +371,19 @@ body.noite #statusDados{color:#94a3b8}
     <img id="imgGrande" alt="">
     <div class="muted" id="imgLegenda"></div>
     <button class="btn" id="btnFecharImg">Fechar</button>
+  </div>
+</div>
+
+<div class="overlay" id="modalBusca" hidden>
+  <div class="caixa">
+    <h2 id="buscaTitulo">Buscar vídeo do exercício</h2>
+    <form id="buscaForm">
+      <input type="search" id="buscaModalInput" placeholder="Nome do exercício…" enterkeyhint="search" aria-label="Buscar vídeos">
+      <button class="btn acc" type="submit">Buscar</button>
+    </form>
+    <div class="busca-aviso">É preciso estar com internet. Toque em um vídeo para assistir; para voltar, use a tecla Voltar.</div>
+    <div class="vid-wrap"><iframe id="vidFrame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen title="Resultados de busca"></iframe></div>
+    <button class="btn" id="btnFecharBusca">Fechar</button>
   </div>
 </div>
 
@@ -450,6 +489,19 @@ function abrirImagem(ex){
 }
 document.getElementById('btnFecharImg').onclick=function(){document.getElementById('modalImg').hidden=true};
 document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
+function abrirBusca(q){
+  const txt=String(q||'').trim().replace(/\s+/g,' ');
+  const titulo=document.getElementById('buscaTitulo'), inp=document.getElementById('buscaModalInput');
+  inp.value=txt;
+  titulo.textContent=txt?'Vídeos: '+txt:'Buscar vídeo do exercício';
+  document.getElementById('vidFrame').src=txt?('https://www.youtube.com/embed/videoseries?listType=search&list='+encodeURIComponent(txt)+'&hl=pt-BR&rel=0'):'about:blank';
+  document.getElementById('modalBusca').hidden=false;
+}
+document.getElementById('btnBuscar').onclick=function(){abrirBusca(document.getElementById('buscaQuery').value)};
+document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(e.key==='Enter')abrirBusca(this.value)});
+document.getElementById('buscaForm').onsubmit=function(e){e.preventDefault();abrirBusca(document.getElementById('buscaModalInput').value)};
+document.getElementById('btnFecharBusca').onclick=function(){document.getElementById('modalBusca').hidden=true};
+document.getElementById('modalBusca').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
@@ -610,6 +662,10 @@ function render(){
       b.onclick=function(){abrirHistorico(ex)};
       info.querySelector('.linha2').appendChild(b);
     }
+    const bv=document.createElement('button');
+    bv.className='busca-ex';bv.type='button';bv.textContent='Ver vídeo';
+    bv.onclick=function(){abrirBusca(ex.nome)};
+    info.querySelector('.linha2').appendChild(bv);
     const hj=hoje();
     const hojeReg=reg&&Array.isArray(reg.hist)?reg.hist.find(function(x){return x.d===hj}):null;
     const psAtual=hojeReg&&Array.isArray(hojeReg.ps)?hojeReg.ps:((hojeReg&&hojeReg.p!=null)?[hojeReg.p]:[]);
@@ -668,8 +724,11 @@ function render(){
       const ti=document.createElement('img');
       ti.src=imgDe(ex); ti.alt=ex.nome;
       ti.onerror=function(){
-        if(!tb.dataset.v){tb.dataset.v='1';const s=imgDe(ex);if(typeof s==='string'&&s.indexOf('data:')!==0)ti.src=s+'?v=1';return}
-        tb.innerHTML='<span class="semfoto">Foto</span>';
+        if(tb.dataset.v){tb.innerHTML='<span class="semfoto">Foto</span>';return}
+        tb.dataset.v='1';
+        const s=IMGS[ex.nome];
+        if(window.FOTOS&&s&&FOTOS[s]){ti.src=FOTOS[s];return}
+        if(typeof ti.src==='string'&&ti.src.indexOf('data:')!==0)ti.src=ti.src+'?v=1';
       };
       tb.appendChild(ti);
       tb.onclick=function(){abrirImagem(ex)};
@@ -772,6 +831,7 @@ document.getElementById('btnNoite').onclick=function(){
   try{n=localStorage.getItem(CHAVE_NOITE)||'0'}catch(e){}
   aplicarNoite(n==='1');
 })();
+setTimeout(function(){if(window.FOTOS&&document.querySelector('.thumb .semfoto'))render()},1600);
 document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
 function erroComCodigo(c){const e=new Error(c);e.code=c;return e}
