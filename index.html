@@ -280,6 +280,15 @@ body.noite #statusDados{color:#94a3b8}
 body.noite .busca-vid input{background:#0f172a;border-color:#475569;color:#e2e8f0}
 body.noite .busca-vid input:focus{border-color:#ee713a}
 body.noite .busca-ex{background:#0f172a;color:#94a3b8}
+
+[hidden]{display:none!important}
+.inicio-vazio{margin:12px 24px 32px;padding:30px 24px;background:#fff;border:1px solid #eceee5;border-radius:28px;text-align:center;box-shadow:0 12px 35px #22251f05}
+.inicio-arte{width:220px;max-width:90%;margin:0 auto 12px;color:#ee713a}.inicio-arte svg{display:block;width:100%;height:auto}
+.inicio-vazio h2{font-size:24px;letter-spacing:-.8px;margin:0 0 12px}.inicio-vazio p{max-width:340px;margin:0 auto 24px;color:#73796d;font-size:14px;line-height:1.7}.inicio-vazio .btn{display:block;width:100%;max-width:340px;margin:0 auto 12px;padding:15px;min-height:50px}.inicio-vazio .link{display:block;margin:10px auto;padding:8px}
+.sem-treinos .section-label,.sem-treinos #abas,.sem-treinos #lista,.sem-treinos .acoesDados,.sem-treinos #btnEditar{display:none!important}
+.sem-treinos .welcome{text-align:center;margin-top:40px}.sem-treinos .welcome h2{font-size:clamp(36px,7vw,54px);letter-spacing:-2px;margin-top:15px}.sem-treinos .welcome p{max-width:360px;margin:auto;line-height:1.6}.sem-treinos #statusSalvamento:empty{display:none}
+body.noite .inicio-vazio{background:#1e293b;border-color:#334155;box-shadow:none}body.noite .inicio-vazio p{color:#94a3b8}body.noite .inicio-vazio h2{color:#e2e8f0}
+@media(min-width:760px){.inicio-vazio{max-width:540px;margin:24px auto 40px;padding:32px 40px}.sem-treinos .welcome{margin-top:44px}}
 </style>
 </head>
 <body>
@@ -302,7 +311,14 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
 </div>
 <div id="viewTreinos">
-<section class="welcome"><div class="eyebrow">UM DIA DE CADA VEZ</div><h2>Seu próximo passo<br>começa aqui.</h2><p>Escolha seu treino. Registre suas cargas. Celebre a constância.</p></section>
+<section class="welcome" id="boasVindas"><div class="eyebrow">ACADEMIA TENDA</div><h2>Seu treino.<br>Seu ritmo.</h2><p>Um espaço para organizar sua rotina e acompanhar cada conquista.</p></section>
+<section class="inicio-vazio" id="inicioVazio" hidden>
+<div class="inicio-arte" aria-hidden="true"><svg viewBox="0 0 240 160" fill="none"><circle cx="120" cy="80" r="65" fill="currentColor" opacity=".08"/><circle cx="120" cy="80" r="47" stroke="currentColor" opacity=".16" stroke-dasharray="4 8"/><g stroke="currentColor" stroke-width="10" stroke-linecap="round" transform="rotate(-25 120 80)"><path d="M82 80h76M82 55v50M66 66v28M158 55v50M174 66v28"/></g><path d="M188 30v14m-7-7h14M48 122v10m-5-5h10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
+<h2>Monte seu primeiro treino</h2><p>Adicione os exercícios que fazem parte da sua rotina. Você pode começar agora, mesmo sem conta.</p>
+<button class="btn acc" id="comecarTreino" type="button">+ Criar meu treino</button>
+<button class="link" id="entrarInicio" type="button" hidden>Já tenho uma conta</button>
+<button class="link fraco" id="importarInicio" type="button">Importar um backup</button>
+</section>
 <section class="week-card" aria-label="Atividade nesta semana"><div class="week-top"><strong>Sua semana</strong><span id="weekSummary">0 dias com atividade</span></div><div class="week-days" id="weekDays"></div></section>
 <h2 class="section-label">Vamos treinar?</h2>
 <nav id="abas" aria-label="Treinos"></nav>
@@ -312,7 +328,7 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
   <div class="indicador"><strong id="cargasSalvas">0</strong><span>Registros de carga</span></div>
 </section>
 <section class="progresso">
-  <div class="nomeTreino" id="nomeTreino">Treino A — Peito e Ombros</div>
+  <div class="nomeTreino" id="nomeTreino"></div>
   <div class="barra"><div id="barraFill"></div></div>
   <div class="ptxt"><span id="progTexto">0/0 (0%)</span><span id="dataTexto"></span></div>
 </section>
@@ -454,7 +470,7 @@ const IMGS={
  'Supino reto com barra':'supino_reto_barra','Abdominal curto':'abdc_curto','Abdominal inferior':'abdc_inferior','Abdominal remador':'abdc_remador'
 };
 function novoItem(nome,series,reps){return{id:id(),nome:nome,series:series,reps:reps,img:IMGS[nome]?('img/'+IMGS[nome]):''}}
-function nomeDo(t){const v=dados&&dados.nomes&&dados.nomes[t];return (v&&String(v).trim())?String(v).trim():NOMES[t]}
+function nomeDo(t){const v=dados&&dados.nomes&&dados.nomes[t];return (v&&String(v).trim())?String(v).trim():'Treino '+t}
 function renderAbas(){
   const nav=document.getElementById('abas'), edit=editando;
   nav.textContent='';
@@ -471,7 +487,7 @@ function renderAbas(){
         const v=inp.value.trim();
         if(v)dados.nomes[t]=v; else delete dados.nomes[t];
         alteracao++;salvarLocal(); agendarEnvio();
-        if(t===treinoAtual)document.getElementById('nomeTreino').textContent='Treino '+t+' — '+nomeDo(t);
+        if(t===treinoAtual)document.getElementById('nomeTreino').textContent=nomeDo(t);
       };
       inp.onfocus=function(){if(this.value===nome&&this.select)this.select()};
       a.appendChild(inp);
@@ -657,9 +673,28 @@ function atualizaProgresso(){
  const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent='Concluir treino de hoje';b.setAttribute('aria-pressed','false');
  document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR');
 }
+function atualizarInicio(){
+ const atual=itens().length>0;
+ const algum=Object.values(dados.treinos).some(a=>Array.isArray(a)&&a.some(e=>String(e.nome||'').trim()));
+ document.body.classList.toggle('sem-treinos',!algum&&!editando);
+ document.body.classList.toggle('treino-vazio',!atual&&!editando);
+ document.getElementById('inicioVazio').hidden=algum||editando;
+ document.getElementById('entrarInicio').hidden=!!usuario||!temConfig();
+ document.getElementById('boasVindas').hidden=editando;
+ document.getElementById('btnConcluir').hidden=editando||!atual;
+ const resumo=document.querySelector('.painel');resumo.hidden=!diasComTreino().length&&!Object.values(dados.pesos||{}).some(r=>r.hist&&r.hist.length);
+ document.querySelector('.week-card').hidden=!diasComTreino().length;
+ document.querySelector('.progresso').hidden=!atual;
+ document.querySelector('.cardio').hidden=!atual;
+ document.querySelector('.busca-vid').hidden=!atual;
+ document.querySelector('.rodape').hidden=!atual;
+}
+document.getElementById('comecarTreino').onclick=function(){if(!editando)document.getElementById('btnEditar').click();document.getElementById('btnAdicionar').click()};
+document.getElementById('entrarInicio').onclick=abrirLogin;
+document.getElementById('importarInicio').onclick=()=>document.getElementById('btnImportar').click();
 function render(){
  document.getElementById('btnConcluir').hidden=editando;
-  document.getElementById('nomeTreino').textContent='Treino '+treinoAtual+' — '+nomeDo(treinoAtual);
+  document.getElementById('nomeTreino').textContent=nomeDo(treinoAtual);
   renderAbas();
   const lista=document.getElementById('lista');
   lista.innerHTML='';
@@ -777,6 +812,7 @@ function render(){
   focarNovo=false;
   atualizaProgresso();
   atualizarPainel();
+  atualizarInicio();
 }
 function abrirHistorico(ex){
   const reg=dados.pesos[ex.id];
