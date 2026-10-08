@@ -1011,6 +1011,7 @@ async function iniciarAuth(){
   fb.U.onAuthStateChanged(fb.auth,function(u){
     clearTimeout(envioTimer);syncPronto=false;sincronizado=-1;usuario=u;
     document.getElementById('btnSincronizar').hidden=!u;
+    atualizarBtnInstalar();
     atualizaBotaoConta();
     render();
     if(u)baixarNuvem();
@@ -1239,14 +1240,22 @@ document.getElementById('exportarCSV').onclick=function(){
 };
 
 let promptInstalar=null;
+function atualizarBtnInstalar(){
+  const b=document.getElementById('btnInstalar');if(!b)return;
+  b.hidden=!usuario;
+}
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault(); promptInstalar=e;
-  document.getElementById('btnInstalar').hidden=false;
+  atualizarBtnInstalar();
 });
+window.addEventListener('appinstalled',function(){document.getElementById('btnInstalar').hidden=true;promptInstalar=null});
 document.getElementById('btnInstalar').onclick=async function(){
-  if(!promptInstalar)return;
-  promptInstalar.prompt(); await promptInstalar.userChoice;
-  promptInstalar=null; this.hidden=true;
+  if(promptInstalar){
+    promptInstalar.prompt(); await promptInstalar.userChoice;
+    promptInstalar=null; this.hidden=true;
+    return;
+  }
+  statusSalvar('No iPhone/iPad: toque em Compartilhar (quadrado com seta) e depois em "Adicionar à Tela de Início". No Android/Chrome: toque em ⋮ e depois em "Instalar aplicativo" ou "Adicionar à tela inicial".');
 };
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
 
