@@ -258,6 +258,7 @@ body.noite #statusDados{color:#94a3b8}
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
+<div id="statusSalvamento" role="status" aria-live="polite" style="padding:12px 24px;text-align:center;font-size:12px"></div><div style="text-align:center"><button class="btn" id="btnSincronizar" type="button" hidden>Tentar sincronizar</button></div>
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
@@ -356,7 +357,7 @@ function renderSemana(){
  const root=document.getElementById('weekDays');if(!root)return;
  const now=new Date(),start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));
  const labels=['S','T','Q','Q','S','S','D'];let count=0;root.replaceChildren();
- for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=dataISO(d);const active=Object.values(dados.progresso[key]||{}).some(a=>Array.isArray(a)&&a.length);if(active)count++;
+ for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=dataISO(d);const active=diaAtivo(key);if(active)count++;
  const cell=document.createElement('div');cell.className='week-day'+(active?' active':'')+(key===hoje()?' today':'');cell.setAttribute('aria-label',d.toLocaleDateString('pt-BR')+(active?' com atividade':''));
  const label=document.createElement('span');label.textContent=labels[i];const dot=document.createElement('span');dot.className='week-dot';dot.textContent=active?'✓':d.getDate();cell.append(label,dot);root.append(cell);}
  document.getElementById('weekSummary').textContent=count+' '+(count===1?'dia com atividade':'dias com atividade');
@@ -366,7 +367,7 @@ function atualizarPainel(){
  renderSemana();
  const dias=Object.keys(dados.progresso||{});
  const totalHoje=Object.values(dados.progresso[hoje()]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
- const diasAtivos=dias.filter(d=>Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)).length;
+ const diasAtivos=dias.filter(diaAtivo).length;
  const cargas=Object.values(dados.pesos||{}).reduce((n,r)=>n+(Array.isArray(r.hist)?r.hist.length:0),0);
  document.getElementById('totalHoje').textContent=totalHoje;
  document.getElementById('diasTreino').textContent=diasAtivos;
@@ -405,7 +406,7 @@ function renderAbas(){
       inp.oninput=function(){
         const v=inp.value.trim();
         if(v)dados.nomes[t]=v; else delete dados.nomes[t];
-        salvarLocal(); agendarEnvio();
+        alteracao++;salvarLocal(); agendarEnvio();
         if(t===treinoAtual)document.getElementById('nomeTreino').textContent='Treino '+t+' — '+nomeDo(t);
       };
       inp.onfocus=function(){if(this.value===nome&&this.select)this.select()};
@@ -451,6 +452,16 @@ document.getElementById('btnFecharImg').onclick=function(){document.getElementBy
 document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
+let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
+function statusSalvar(msg){document.getElementById('statusSalvamento').textContent=msg}
+function migrarConclusoes(j){
+ j.progresso=j.progresso||{};
+ for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of ORDEM){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
+ j.concluidos={};return j;
+}
+function diaAtivo(d){return Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)}
+function treinoCompleto(){const a=itens();return a.length>0&&a.every(e=>feitos().includes(e.id))}
+
 
 function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function hoje(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -465,7 +476,7 @@ function salvarSerie(ex,idx,bruto){
   const hj=hoje(), n=nSeriesDe(ex);
   const v=String(bruto).trim().replace(',','.');
   let p=null;
-  if(v!==''){p=parseFloat(v);if(isNaN(p)||p<0)return}
+  if(v!==''){p=Number(v);if(!/^\d+(\.\d+)?$/.test(v)||!Number.isFinite(p)||p<0){mostrarStatus('Informe uma carga válida, como 12 ou 12,5 kg.');return false}}
   if(!dados.pesos[ex.id])dados.pesos[ex.id]={nome:ex.nome,hist:[]};
   const reg=dados.pesos[ex.id];
   reg.nome=ex.nome;
@@ -486,7 +497,7 @@ function salvarSerie(ex,idx,bruto){
     entry.t=Date.now();
     reg.hist.sort(function(a,b){return a.d<b.d?-1:1});
   }
-  salvar(); render();
+  salvar(); atualizaProgresso(); atualizarPainel(); return true;
 }
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
 function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
@@ -498,7 +509,7 @@ function perguntarModelo(){
   localStorage.setItem(JAPERG,'1');
   if(treinosVaziosCompletos()&&confirm('Sua conta está vazia. Carregar o modelo de treino A–E para começar?')){
     dados.treinos=novoModelo();
-    salvarLocal(); render(); enviarNuvem();
+    salvar(); render();
   }
 }
 function localPuroModelo(){
@@ -529,7 +540,7 @@ function carregar(){
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
   if(!j.nomes||typeof j.nomes!=='object')j.nomes={};
   if(!j.concluidos||typeof j.concluidos!=='object')j.concluidos={};
-  return j;
+  return migrarConclusoes(j);
 }
 function podar(){
   Object.keys(dados.pesos).forEach(function(k){
@@ -537,8 +548,12 @@ function podar(){
     if(h&&Array.isArray(h.hist)){h.hist.sort(function(a,b){return a.d<b.d?-1:1});if(h.hist.length>200)h.hist=h.hist.slice(-200)}
   });
 }
-function salvarLocal(){podar();try{localStorage.setItem(CHAVE,JSON.stringify(dados))}catch(e){mostrarStatus('Armazenamento cheio. Exporte um backup para proteger seus dados.')}}
-function salvar(){salvarLocal();agendarEnvio();atualizarPainel()}
+function salvarLocal(){
+ try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;statusSalvar(usuario?'Salvo neste navegador · sincronização pendente':'Salvo neste navegador');return true}
+ catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
+}
+function salvar(){alteracao++;salvarLocal();agendarEnvio();atualizarPainel();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
+
 function feitos(){
   const h=hoje();
   if(!dados.progresso[h])dados.progresso[h]={};
@@ -551,8 +566,11 @@ function atualizaProgresso(){
   const pct=total?Math.round(n/total*100):0;
   document.getElementById('barraFill').style.width=pct+'%';
   document.getElementById('progTexto').textContent=n+'/'+total+' ('+pct+'%)';
+ const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent=n===total&&total?'Desmarcar treino de hoje':'Concluir treino de hoje';b.setAttribute('aria-pressed',String(!!total&&n===total));
+ document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR');
 }
 function render(){
+ document.getElementById('btnConcluir').hidden=editando;
   document.getElementById('nomeTreino').textContent='Treino '+treinoAtual+' — '+nomeDo(treinoAtual);
   renderAbas();
   const lista=document.getElementById('lista');
@@ -608,7 +626,7 @@ function render(){
       inp.setAttribute('aria-label','Peso da série '+(s+1)+' de '+ex.nome);
       const val=psAtual[s];
       inp.value=(val==null||val==='')?'':String(val).replace('.',',');
-      (function(idx,el){el.onchange=function(){salvarSerie(ex,idx,el.value)}})(s,inp);
+      (function(idx,el){el.oninput=function(){const ok=salvarSerie(ex,idx,el.value);el.setCustomValidity(ok===false?'Informe uma carga válida.':'')};el.onblur=function(){if(!el.checkValidity())el.reportValidity()}})(s,inp);
       lab.appendChild(num); lab.appendChild(inp); sp.appendChild(lab);
     }
     const ed=document.createElement('div');
@@ -639,7 +657,7 @@ function render(){
     ed.querySelector('.del').onclick=function(){
       dados.treinos[treinoAtual]=dados.treinos[treinoAtual].filter(function(e){return e.id!==ex.id});
       const f=feitos(), i=f.indexOf(ex.id); if(i>-1)f.splice(i,1);
-      delete dados.pesos[ex.id];
+      // O histórico antigo é preservado mesmo quando o exercício é removido.
       salvar(); render();
     };
     li.appendChild(chk);
@@ -710,7 +728,7 @@ document.getElementById('btnEditar').onclick=function(){
     salvar();
   }
   document.body.classList.toggle('editando',editando);
-  this.textContent=editando?'Concluir':'Editar';
+  this.textContent=editando?'Terminar edição':'Editar';
   render();
 };
 document.getElementById('btnAdicionar').onclick=function(){
@@ -723,8 +741,10 @@ document.getElementById('btnModelo').onclick=function(){
   dados.progresso={};
   dados.pesos={};
   dados.nomes={};
+  dados.concluidos={};
   salvar(); render();
 };
+document.getElementById('btnLimpar').textContent='Desmarcar este treino de hoje';
 document.getElementById('btnLimpar').onclick=function(){
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
   feitos().length=0;
@@ -732,20 +752,14 @@ document.getElementById('btnLimpar').onclick=function(){
   salvar(); render();
 };
 document.getElementById('btnConcluir').onclick=function(){
-  const arr=(dados.treinos[treinoAtual]||[]).filter(function(e){return String(e.nome||'').trim()});
-  if(!arr.length){mostrarStatus('Não há exercícios no Treino '+treinoAtual+' para concluir.');return}
-  const hj=hoje();
-  if(!dados.concluidos)dados.concluidos={};
-  if(!dados.concluidos[hj])dados.concluidos[hj]={};
-  if(dados.concluidos[hj][treinoAtual]){
-    mostrarStatus('Treino '+treinoAtual+' já foi concluído hoje e segue salvo.');
-    return;
-  }
-  dados.concluidos[hj][treinoAtual]=true;
+ const arr=itens();if(!arr.length)return;
+ if(treinoCompleto()){
+  if(!confirm('Desmarcar todos os exercícios deste treino de hoje? As cargas serão mantidas.'))return;
   feitos().length=0;
-  salvar(); render();
-  mostrarStatus('Treino '+treinoAtual+' concluído e salvo! Bom descanso.');
+ }else{dados.progresso[hoje()][treinoAtual]=arr.map(e=>e.id)}
+ salvar();render();
 };
+
 const CHAVE_NOITE='academia_noite';
 function aplicarNoite(n){
   document.body.classList.toggle('noite',!!n);
@@ -830,85 +844,60 @@ function montarDoc(){
   };
 }
 function agendarEnvio(){
-  if(!usuario)return;
-  clearTimeout(envioTimer);
-  envioTimer=setTimeout(enviarNuvem,800);
+ if(!usuario||!syncPronto)return;
+ clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
 }
+function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{}])}
+function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
 async function enviarNuvem(){
-  if(!usuario)return;
-  try{
-    const fb=await getFB();
-    await fb.F.setDoc(fb.F.doc(fb.db,'usuarios',usuario.uid),montarDoc(),{merge:true});
-  }catch(e){mostrarStatus('Não foi possível sincronizar agora. Seus dados permanecem neste dispositivo.')}
-}
-function mesclarNuvem(c){
-  if(c.treinos&&typeof c.treinos==='object'){
-    ORDEM.forEach(function(t){
-      if(Array.isArray(c.treinos[t]))dados.treinos[t]=c.treinos[t];
-    });
-  }
-  if(c.progresso){
-    Object.keys(c.progresso).forEach(function(d){
-      const rem=c.progresso[d];
-      if(!rem||typeof rem!=='object')return;
-      if(!dados.progresso[d])dados.progresso[d]={};
-      Object.keys(rem).forEach(function(t){
-        if(!Array.isArray(rem[t]))return;
-        if(!Array.isArray(dados.progresso[d][t]))dados.progresso[d][t]=[];
-        rem[t].forEach(function(x){if(dados.progresso[d][t].indexOf(x)<0)dados.progresso[d][t].push(x)});
-      });
-    });
-  }
-  if(c.pesos){
-    Object.keys(c.pesos).forEach(function(exId){
-      const nu=c.pesos[exId];
-      if(!nu||!Array.isArray(nu.hist))return;
-      if(!dados.pesos[exId])dados.pesos[exId]={nome:nu.nome||'',hist:[]};
-      const meu=dados.pesos[exId];
-      if(nu.nome)meu.nome=nu.nome;
-      nu.hist.forEach(function(r){
-        if(!r||!r.d||(!Array.isArray(r.ps)&&typeof r.p!=='number'))return;
-        const i=meu.hist.findIndex(function(x){return x.d===r.d});
-        if(i<0)meu.hist.push(r);
-        else if((r.t||0)>=(meu.hist[i].t||0))meu.hist[i]=r;
-      });
-      meu.hist.sort(function(a,b){return a.d<b.d?-1:1});
-    });
-  }
-  if(c.nomes&&typeof c.nomes==='object'){
-    Object.keys(c.nomes).forEach(function(t){
-      if(ORDEM.indexOf(t)>-1&&c.nomes[t])dados.nomes[t]=String(c.nomes[t]);
-    });
-  }
-  if(c.concluidos&&typeof c.concluidos==='object'){
-    if(!dados.concluidos)dados.concluidos={};
-    Object.keys(c.concluidos).forEach(function(d){
-      const rem=c.concluidos[d];
-      if(!rem||typeof rem!=='object')return;
-      if(!dados.concluidos[d])dados.concluidos[d]={};
-      ORDEM.forEach(function(t){if(rem[t])dados.concluidos[d][t]=true});
-    });
-  }
+ if(!usuario||!syncPronto||syncOcupado||sincronizado===alteracao)return;
+ syncOcupado=true;const uid=usuario.uid,seq=alteracao,expected=baseNuvem;
+ const payload=JSON.parse(JSON.stringify(montarDoc()));payload.revisao=id();
+ statusSalvar(localSalvo?'Salvo neste navegador · sincronizando…':'Sem cópia local · sincronizando…');
+ try{
+  const fb=await getFB();const ref=fb.F.doc(fb.db,'usuarios',uid);
+  await fb.F.runTransaction(fb.db,async tx=>{
+   const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data()):null;
+   if(remote!==expected)throw erroComCodigo('conflito');
+   if(!usuario||usuario.uid!==uid)throw erroComCodigo('conta-alterada');
+   tx.set(ref,payload);
+  });
+  if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;statusSalvar(localSalvo?'Salvo neste navegador e na nuvem':'Salvo na nuvem · cópia local indisponível')}
+ }catch(e){
+  if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Seus dados locais foram mantidos. Toque em Tentar sincronizar para escolher a versão.')}
+  else statusSalvar(localSalvo?'Salvo neste navegador · nuvem pendente. Tente sincronizar novamente.':'Salvamento falhou. Exporte um backup antes de fechar.');
+ }finally{syncOcupado=false;if(syncPronto&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
-  if(!usuario)return;
-  try{
-    const fb=await getFB();
-    const snap=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',usuario.uid));
-    if(snap.exists()){
-      mesclarNuvem(snap.data()||{});
-      salvarLocal(); render();
-    }else{
-      // Uma conta nova não deve apagar os treinos existentes no dispositivo.
-      enviarNuvem();
+ if(!usuario)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
+ try{
+  const fb=await getFB();const snap=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',uid));
+  if(!usuario||usuario.uid!==uid)return;
+  const c=snap.exists()?snap.data():null;
+  baseNuvem=c?versaoNuvem(c):null;
+  if(c){
+   const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
+   if(!remote.treinos||!ORDEM.every(t=>Array.isArray(remote.treinos[t])))throw Error('Dados da nuvem inválidos');
+   if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Tentar sincronizar para escolher a versão.');return}
+   if(assinatura(remote)!==assinatura(dados)){
+    if(confirm('Há dados diferentes na conta. OK: carregar a versão da nuvem. Cancelar: manter a versão deste navegador e enviá-la à conta. Uma cópia de segurança local será guardada antes da troca.')){
+     try{localStorage.setItem(CHAVE+'_antes_sincronizar',JSON.stringify(dados))}catch(e){statusSalvar('Não foi possível guardar a cópia. Exporte um backup antes de trocar a versão.');return}
+     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{}};
+     alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
     }
-    perguntarModelo();
-  }catch(e){mostrarStatus('Não foi possível baixar os dados da nuvem.')}
+   }
+  }
+  syncPronto=true;sincronizado=-1;agendarEnvio();
+ }catch(e){statusSalvar(localSalvo?'Salvo neste navegador · não foi possível carregar a nuvem. Tente novamente.':'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.')}
 }
+document.getElementById('btnSincronizar').onclick=()=>{if(!syncPronto)baixarNuvem();else enviarNuvem()};
+window.addEventListener('online',()=>{if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
+
 async function iniciarAuth(){
   const fb=await getFB();
   fb.U.onAuthStateChanged(fb.auth,function(u){
-    usuario=u;
+    clearTimeout(envioTimer);syncPronto=false;sincronizado=-1;usuario=u;
+    document.getElementById('btnSincronizar').hidden=!u;
     atualizaBotaoConta();
     render();
     if(u)baixarNuvem();
@@ -998,7 +987,7 @@ document.getElementById('arquivoBackup').onchange=async function(){
   if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!obj.dados.progresso||!obj.dados.pesos||!ORDEM.every(t=>Array.isArray(obj.dados.treinos[t])))throw Error('formato');
   if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
   dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{}};
-  salvar();render();mostrarStatus('Backup importado com sucesso.');
+  migrarConclusoes(dados);salvar();render();mostrarStatus(localSalvo?'Backup importado e salvo neste navegador.':'Backup carregado, mas não salvo. Exporte os dados antes de fechar.');
  }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
 };
 
@@ -1019,19 +1008,7 @@ document.getElementById('irEvolucao').onclick=()=>mudarVista('evolucao');
 document.getElementById('mesAnterior').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()-1);renderCalendario()};
 document.getElementById('mesSeguinte').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()+1);renderCalendario()};
 function dataISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function diasComTreino(){
-  const dias=new Set();
-  const diasChaves=Object.keys(dados.concluidos||{});
-  diasChaves.forEach(function(d){
-    const c=dados.concluidos[d];
-    if(c&&ORDEM.some(function(t){return c[t]}))dias.add(d);
-  });
-  Object.keys(dados.progresso||{}).forEach(function(d){
-    const p=dados.progresso[d];
-    if(p&&Object.values(p).some(function(a){return Array.isArray(a)&&a.length}))dias.add(d);
-  });
-  return Array.from(dias);
-}
+function diasComTreino(){return Object.keys(dados.progresso||{}).filter(diaAtivo)}
 function renderCalendario(){
  const y=mesExibido.getFullYear(),m=mesExibido.getMonth(),grid=document.getElementById('calendario');
  document.getElementById('mesTitulo').textContent=mesExibido.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
@@ -1104,6 +1081,7 @@ document.getElementById('btnInstalar').onclick=async function(){
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
 
 dados=carregar(); salvarLocal(); render(); atualizaBotaoConta();
+let diaVisivel=hoje();setInterval(()=>{if(hoje()!==diaVisivel){diaVisivel=hoje();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}},15000);
 if(temConfig()){
   iniciarAuth().catch(function(){
     document.getElementById('avisoConta').hidden=false;
