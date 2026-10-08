@@ -320,7 +320,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   <div class="topo">
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
     <button class="btn" id="btnEditar" hidden>Editar</button>
-    <button class="btn" id="btnConta" hidden>Entrar</button>
+    <button class="btn" id="btnConta" type="button">Entrar</button>
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
@@ -449,6 +449,8 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <script src="firebase-config.js"></script>
 <script>
 const CHAVE='academia_v3';
+let dados, treinoAtual='A', editando=false, focarNovo=false;
+let sessaoAluno=null, meuPerfil='aluno';
 function mostrarStatus(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg;mostrarToast(msg)}
 function renderSemana(){
  const root=document.getElementById('weekDays');if(!root)return;
@@ -588,9 +590,7 @@ function abrirImagem(ex){
 }
 document.getElementById('btnFecharImg').onclick=function(){document.getElementById('modalImg').hidden=true};
 document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
 function abrirBusca(q){
   const txt=String(q||'').trim().replace(/\s+/g,' ');
   if(!txt)return;
@@ -861,9 +861,7 @@ function render(){
   atualizarPainel();
   atualizarInicio();
 }
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
 function abrirHistorico(ex){
   const reg=dados.pesos[ex.id];
   document.getElementById('histTitulo').textContent='Evolução — '+ex.nome;
@@ -989,13 +987,10 @@ function sairDoModoEdicao(){
   document.body.classList.remove('editando');
   document.getElementById('btnEditar').textContent='Editar';
 }
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
 function atualizaBotaoConta(){
   const b=document.getElementById('btnConta');
   document.getElementById('btnEditar').hidden=false;
-  if(!temConfig()){b.hidden=true;return}
   b.hidden=false;
   if(usuario){
     b.classList.add('av');
@@ -1152,9 +1147,7 @@ async function ativarDono(){
   alert('Não foi possível ativar: já existe um responsável na academia. Abra o app com a conta do responsável atual para liberar pedidos.');
  }
 }
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
 function abrirPainelProfessor(){
  if(!usuario||(meuPerfil!=='professor'&&meuPerfil!=='dono'))return;
  document.getElementById('modalProfessor').hidden=false;
@@ -1338,12 +1331,8 @@ async function iniciarAuth(){
     }
   });
 }
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
+
 function abrirPerfil(){
   document.getElementById('perfilAvatar').textContent=(usuario.displayName||usuario.email||'U').trim().charAt(0).toUpperCase()||'U';
   document.getElementById('perfilNome').textContent=usuario.displayName||'(sem nome)';
@@ -1351,9 +1340,7 @@ function abrirPerfil(){
   atualizarCargoPerfil();
   document.getElementById('modalPerfil').hidden=false;
 }
-document.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+
 function abrirLogin(){
   document.getElementById('loginErro').textContent='';
   document.getElementById('modalLogin').hidden=false;
