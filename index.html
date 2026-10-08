@@ -566,7 +566,7 @@ function atualizaProgresso(){
   const pct=total?Math.round(n/total*100):0;
   document.getElementById('barraFill').style.width=pct+'%';
   document.getElementById('progTexto').textContent=n+'/'+total+' ('+pct+'%)';
- const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent=n===total&&total?'Desmarcar treino de hoje':'Concluir treino de hoje';b.setAttribute('aria-pressed',String(!!total&&n===total));
+ const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent='Concluir treino de hoje';b.setAttribute('aria-pressed','false');
  document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR');
 }
 function render(){
@@ -753,11 +753,10 @@ document.getElementById('btnLimpar').onclick=function(){
 };
 document.getElementById('btnConcluir').onclick=function(){
  const arr=itens();if(!arr.length)return;
- if(treinoCompleto()){
-  if(!confirm('Desmarcar todos os exercícios deste treino de hoje? As cargas serão mantidas.'))return;
-  feitos().length=0;
- }else{dados.progresso[hoje()][treinoAtual]=arr.map(e=>e.id)}
- salvar();render();
+ const marcados=feitos().filter(function(f){return arr.some(function(e){return e.id===f})});
+ if(!marcados.length){statusSalvar('Marque os exercícios que concluiu e depois toque em Concluir treino de hoje.');return}
+ salvar();
+ statusSalvar('Treino '+treinoAtual+' concluído e salvo: '+marcados.length+' de '+arr.length+' exercícios. Bom descanso!');
 };
 
 const CHAVE_NOITE='academia_noite';
