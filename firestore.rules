@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isDono(uid) {
+      if (!exists(/databases/$(database)/documents/perfis/_adm)) return false;
+      return get(/databases/$(database)/documents/perfis/_adm).data.dono == uid;
+    }
+    function isProf(uid) {
+      if (isDono(uid)) return true;
+      if (!exists(/databases/$(database)/documents/perfis/$(uid))) return false;
+      return get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['professor', 'dono'];
+    }
+
+    match /perfis/_adm {
+      allow create: if request.auth != null
+        && !exists(/databases/$(database)/documents/perfis/_adm)
+        && request.resource.data.dono == request.auth.uid;
+      allow read, update, delete: if isDono(request.auth.uid);
+    }
+
+    match /perfis/{uid} {
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || isProf(request.auth.uid));
+      allow list: if request.auth != null && isProf(request.auth.uid);
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.role in ['aluno', 'pendente']
+        && get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['aluno', 'pendente'];
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.role == 'dono'
+        && isDono(request.auth.uid);
+      allow update: if isProf(request.auth.uid);
+    }
+
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isProf(request.auth.uid);
+      allow create: if isProf(request.auth.uid);
+      allow update: if isProf(request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['treinos']);
+    }
+  }
+}

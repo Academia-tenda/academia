@@ -289,6 +289,25 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
 .sem-treinos .welcome{text-align:center;margin-top:40px}.sem-treinos .welcome h2{font-size:clamp(36px,7vw,54px);letter-spacing:-2px;margin-top:15px}.sem-treinos .welcome p{max-width:360px;margin:auto;line-height:1.6}.sem-treinos #statusSalvamento:empty{display:none}
 body.noite .inicio-vazio{background:#1e293b;border-color:#334155;box-shadow:none}body.noite .inicio-vazio p{color:#94a3b8}body.noite .inicio-vazio h2{color:#e2e8f0}
 @media(min-width:760px){.inicio-vazio{max-width:540px;margin:24px auto 40px;padding:32px 40px}.sem-treinos .welcome{margin-top:44px}}
+#perfilCargo{margin:6px 0 2px;font-size:14px}
+#profAcoes{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.prof-painel h2{margin-top:0}
+#profBusca{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d5d0c4;background:#fff;font-size:14px;margin:8px 0}
+#profPedidos,#profLista{margin-bottom:4px}
+.secao-prof{margin-top:12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8b8b8b}
+.prof-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(127,127,127,.18)}
+.prof-row .p-info{min-width:0;flex:1}
+.prof-row .p-info strong{display:block;font-size:15px}
+.prof-row .p-info span{display:inline-block;font-size:12px;color:#777;word-break:break-all}
+.prof-row .p-btns{display:flex;gap:6px;flex-shrink:0}
+body.noite .prof-row{border-color:rgba(255,255,255,.12)}
+body.noite .prof-row .p-info span{color:#94a3b8}
+#bannerAluno{position:fixed;z-index:70;top:0;left:0;right:0;background:#b45309;color:#fff;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#bannerAluno b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bannerAluno .b-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+#bannerAluno .b-btns{display:flex;gap:6px;flex-shrink:0}
+#bannerAluno button{background:#fff;color:#b45309;border:0;padding:8px 12px;border-radius:8px;font-weight:700;font-size:13px}
+#modalProfessor .caixa{max-width:560px}
 </style>
 </head>
 <body>
@@ -383,8 +402,20 @@ body.noite .inicio-vazio{background:#1e293b;border-color:#334155;box-shadow:none
     <div class="avatar" id="perfilAvatar">U</div>
     <div id="perfilNome"></div>
     <div class="muted" id="perfilEmail"></div>
+    <div class="muted" id="perfilCargo"></div>
+    <div id="profAcoes"></div>
     <button class="btn warn" id="btnSair">Sair da conta</button>
     <button class="link" id="btnFecharPerfil">Fechar</button>
+  </div>
+</div>
+
+<div class="overlay" id="modalProfessor" hidden>
+  <div class="caixa prof-painel">
+    <h2>Painel do professor</h2>
+    <input id="profBusca" type="search" placeholder="Buscar aluno por nome ou e-mail">
+    <div id="profPedidos"></div>
+    <div id="profLista"></div>
+    <button class="btn" id="btnFecharProf">Fechar</button>
   </div>
 </div>
 
@@ -405,6 +436,15 @@ body.noite .inicio-vazio{background:#1e293b;border-color:#334155;box-shadow:none
 </div>
 
 <div id="toastStatus" role="status" aria-live="assertive"></div>
+<div id="bannerAluno" hidden>
+  <div class="b-tx">
+    <span>Editando um treino novo para <b id="bannerAlunoNome"></b></span>
+  </div>
+  <div class="b-btns">
+    <button type="button" id="btnSalvarAluno">Salvar no aluno</button>
+    <button type="button" id="btnCancelarAluno">Cancelar</button>
+  </div>
+</div>
 <script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -552,7 +592,7 @@ function abrirBusca(q){
 }
 document.getElementById('btnBuscar').onclick=function(){abrirBusca(document.getElementById('buscaQuery').value)};
 document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(e.key==='Enter')abrirBusca(this.value)});
-let dados, treinoAtual='A', editando=false, focarNovo=false;
+let dados, treinoAtual='A', editando=false, focarNovo=false, sessaoAluno=null, meuPerfil=null;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
 function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg;mostrarToast(msg)}
@@ -653,6 +693,7 @@ function podar(){
   });
 }
 function salvarLocal(){
+ if(sessaoAluno)return true;
  try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;statusSalvar(usuario?(navigator.onLine?'Salvo neste navegador':'Salvo no aparelho · sem conexão') : 'Salvo neste navegador');return true}
  catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
 }
@@ -967,7 +1008,7 @@ function montarDoc(){
   };
 }
 function agendarEnvio(){
- if(!usuario||!syncPronto)return;
+ if(!usuario||!syncPronto||sessaoAluno)return;
  clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
 }
 function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{}])}
@@ -980,7 +1021,7 @@ function temConteudo(d){
  return false;
 }
 async function enviarNuvem(forcar){
- if(!usuario||syncOcupado)return;
+ if(!usuario||syncOcupado||sessaoAluno)return;
  const forza=!!forcar;
  if(!forza&&(!syncPronto||sincronizado===alteracao))return;
  syncOcupado=true;const uid=usuario.uid,seq=alteracao,expected=baseNuvem;
@@ -1005,7 +1046,7 @@ const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data())
  }finally{syncOcupado=false;if(!forza&&syncPronto&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
- if(!usuario)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
+ if(!usuario||sessaoAluno)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
  try{
   const fb=await getFB();
   const ref=fb.F.doc(fb.db,'usuarios',uid);
@@ -1036,11 +1077,227 @@ async function baixarNuvem(){
  }
 }
 document.getElementById('btnSincronizar').onclick=function(){
-  if(!usuario)return;
+  if(!usuario||sessaoAluno)return;
   if(temConteudo(dados)){enviarNuvem(true);statusSalvar('Enviando os dados deste aparelho para a sua conta...')}
   else{statusSalvar('Este aparelho está vazio. Carregando seus dados da conta...');baixarNuvem()}
 };
 window.addEventListener('online',()=>{if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
+
+const CODIGO_RESPONSAVEL='TENDA123';
+async function garantirPerfil(){
+ if(!usuario)return;
+ try{
+  const fb=await getFB();
+  const ref=fb.F.doc(fb.db,'perfis',usuario.uid);
+  let snap;try{snap=await fb.F.getDoc(ref)}catch(e){if(!usuario)return;snap=await fb.F.getDoc(ref)}
+  if(snap.exists())meuPerfil=snap.data().role||'aluno';
+  else{
+   await fb.F.setDoc(ref,{uid:usuario.uid,email:usuario.email||'',nome:usuario.displayName||'',role:'aluno',criadoEm:Date.now()});
+   meuPerfil='aluno';
+  }
+ }catch(e){console.error('garantirPerfil',e);meuPerfil=null}
+ atualizarCargoPerfil();
+}
+function atualizarCargoPerfil(){
+ const c=document.getElementById('perfilCargo');if(!c)return;
+ const a=document.getElementById('profAcoes');if(!a)return;
+ c.textContent=meuPerfil==='dono'?'Você é o responsável da academia.':meuPerfil==='professor'?'Sua conta é de professor.':meuPerfil==='pendente'?'Pedido de professor enviado. Aguarde o responsável liberar.':'Sua conta é de aluno.';
+ a.textContent='';
+ if(meuPerfil==='aluno'){
+  const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Quero ser professor';
+  b.onclick=async function(){
+   try{const fb=await getFB();await fb.F.updateDoc(fb.F.doc(fb.db,'perfis',usuario.uid),{role:'pendente'});meuPerfil='pendente';atualizarCargoPerfil();statusSalvar('Pedido enviado! O responsável vai liberar sua conta para ser professor.')}
+   catch(e){statusSalvar('Não foi possível enviar o pedido ('+((e&&e.code)||e.message||'erro')+'). Tente novamente.')}
+  };
+  a.appendChild(b);
+ }else if(meuPerfil==='pendente'||meuPerfil==='professor'||meuPerfil==='dono'){
+  const b=document.createElement('button');b.type='button';b.className='btn acc';b.textContent='Painel do professor';
+  b.onclick=abrirPainelProfessor;
+  a.appendChild(b);
+ }
+ if(meuPerfil!=='dono'){
+  const l=document.createElement('button');l.type='button';l.className='link fraco';l.textContent='Sou o responsável';
+  l.onclick=function(){
+   const c=prompt('Para ativar sua conta como responsável, digite o código de responsável:');
+   if(c===null)return;
+   if(String(c).trim()!==CODIGO_RESPONSAVEL){alert('Código incorreto.');return}
+   ativarDono();
+  };
+  a.appendChild(l);
+ }
+}
+async function ativarDono(){
+ if(!usuario)return;
+ statusSalvar('Ativando conta de responsável...');
+ try{
+  const fb=await getFB();const db=fb.db;
+  await fb.F.setDoc(fb.F.doc(db,'perfis','_adm'),{dono:usuario.uid,criadoEm:Date.now()});
+  await fb.F.updateDoc(fb.F.doc(db,'perfis',usuario.uid),{email:usuario.email||'',nome:usuario.displayName||'',role:'dono'});
+  meuPerfil='dono';atualizarCargoPerfil();
+  statusSalvar('Você agora é o responsável da academia. Libere os pedidos pelo Painel do professor.');
+ }catch(e){
+  console.error('ativarDono',e);
+  alert('Não foi possível ativar: já existe um responsável na academia. Abra o app com a conta do responsável atual para liberar pedidos.');
+ }
+}
+function abrirPainelProfessor(){
+ if(!usuario||(meuPerfil!=='professor'&&meuPerfil!=='dono'))return;
+ document.getElementById('modalProfessor').hidden=false;
+ document.getElementById('profBusca').value='';
+ carregarPainelProfessor();
+}
+async function carregarPainelProfessor(){
+ const lista=document.getElementById('profLista');
+ const ped=document.getElementById('profPedidos');
+ try{
+  const fb=await getFB();
+  const qs=await fb.F.getDocs(fb.F.collection(fb.db,'perfis'));
+  const perfis=[];
+  qs.forEach(function(d){const v=d.data();if(v&&v.uid&&v.role)perfis.push(v)});
+  perfis.sort(function(a,b){return String(a.nome||a.email||'').localeCompare(String(b.nome||b.email||''))});
+  if(meuPerfil==='dono'){
+   const pend=perfis.filter(function(p){return p.role==='pendente'});
+   ped.textContent='';
+   if(pend.length){
+    const h=document.createElement('div');h.className='secao-prof';h.textContent='Pedidos de professor ('+pend.length+')';ped.append(h);
+    pend.forEach(function(p){ped.append(desenharRow(p,[{t:'Aceitar',c:'btn acc',f:function(){mudarRole(p.uid,'professor')}},{t:'Recusar',c:'btn warn',f:function(){mudarRole(p.uid,'aluno')}}],true))});
+   }else{
+    const e=document.createElement('div');e.className='muted';e.textContent='Nenhum pedido de professor no momento.';ped.append(e);
+   }
+  }else ped.textContent='';
+  const alunos=perfis.filter(function(p){return (p.role==='aluno'||p.role==='professor')&&p.uid!==usuario.uid});
+  const busca=(document.getElementById('profBusca').value||'').trim().toLowerCase();
+  lista.textContent='';
+  const h=document.createElement('div');h.className='secao-prof';h.textContent='Quem pode receber treino';lista.append(h);
+  const filtrados=alunos.filter(function(p){
+   if(!busca)return true;
+   const alvo=(String(p.nome||'')+' '+String(p.email||'')).toLowerCase();
+   return alvo.indexOf(busca)>=0;
+  });
+  if(!filtrados.length){const e=document.createElement('div');e.className='muted';e.textContent='Nenhum aluno encontrado.';lista.append(e)}
+  filtrados.forEach(function(p){lista.append(desenharRow(p,[{t:'Enviar treino',c:'btn acc',f:function(){escolherTreino(p)}}],false))});
+ }catch(e){
+  console.error('carregarPainelProfessor',e);
+  lista.textContent='';
+  const d=document.createElement('div');d.className='muted';
+  d.textContent='Não foi possível carregar a lista ('+((e&&e.code)||e.message||'erro')+'). Verifique se a nova permissão (regra) foi publicada no Firebase e tente novamente.';
+  lista.append(d);
+ }
+}
+function desenharRow(p,botoes,urgente){
+ const r=document.createElement('div');r.className='prof-row';
+ const info=document.createElement('div');info.className='p-info';
+ const nome=document.createElement('strong');nome.textContent=p.nome||'(sem nome)';
+ const mail=document.createElement('span');mail.textContent=p.email||(urgente?'':'');
+ const tag=document.createElement('span');tag.textContent=' · '+(urgente?'aguardando liberação':(p.role==='professor'?'professor':'aluno'));
+ const bwrap=document.createElement('div');bwrap.className='p-btns';
+ botoes.forEach(function(b){const bt=document.createElement('button');bt.type='button';bt.className=b.c;bt.textContent=b.t;bt.onclick=b.f;bwrap.append(bt)});
+ info.append(nome,mail,tag);
+ r.append(info,bwrap);
+ return r;
+}
+async function mudarRole(uid,role){
+ if(!confirm(role==='professor'?'Liberar esta conta como professor?':'Recusar o pedido de professor?'))return;
+ try{
+  const fb=await getFB();
+  await fb.F.updateDoc(fb.F.doc(fb.db,'perfis',uid),{role:role});
+  statusSalvar(role==='professor'?'Professor(a) liberado(a).':'Pedido recusado.');
+  carregarPainelProfessor();
+ }catch(e){statusSalvar('Não foi possível atualizar ('+((e&&e.code)||e.message||'erro')+').')}
+}
+function escolherTreino(p){
+ const letras=Object.keys(dados.treinos||{});
+ if(!letras.length){montarNovoPara(p);return}
+ const linhas=['O que deseja enviar para '+(p.nome||p.email||'')+'?'];
+ for(let i=0;i<letras.length;i++)linhas.push((i+1)+'. Treino '+nomeDo(letras[i]));
+ linhas.push('N. Montar um treino novo');
+ const q=(prompt(linhas.join('\n'))||'').trim();
+ if(!q)return;
+ if(/n|novo|montar/i.test(q)){montarNovoPara(p);return}
+ const idx=parseInt(q,10);
+ const letra=(idx>=1&&idx<=letras.length)?letras[idx-1]:(letras.indexOf(q.toUpperCase())>=0?q.toUpperCase():null);
+ if(letra)enviarTreinoMeu(p,letra);
+ else statusSalvar('Opção inválida. Escolha um número da lista ou digite N para montar um novo.');
+}
+async function enviarTreinoMeu(p,letra){
+ statusSalvar('Enviando treino '+nomeDo(letra)+' para '+(p.nome||p.email||'')+'...');
+ try{
+  const fb=await getFB();const db=fb.db;
+  const ref=fb.F.doc(db,'usuarios',p.uid);
+  let snap;try{snap=await fb.F.getDoc(ref)}catch(e){snap=await fb.F.getDoc(ref)}
+  const remoto=snap.exists()?snap.data():null;
+  const treinos=(remoto&&remoto.treinos&&typeof remoto.treinos==='object')?JSON.parse(JSON.stringify(remoto.treinos)):{};
+  treinos[letra]=JSON.parse(JSON.stringify(dados.treinos[letra]||[]));
+  if(remoto)await fb.F.updateDoc(ref,{treinos:treinos});
+  else await fb.F.setDoc(ref,{treinos:treinos});
+  statusSalvar('Treino '+nomeDo(letra)+' enviado para '+(p.nome||p.email||'')+'. O aluno verá quando abrir no celular dele.');
+ }catch(e){
+  console.error('enviarTreinoMeu',e);
+  statusSalvar('Não foi possível enviar ('+((e&&e.code)||e.message||'erro')+'). Verifique se a nova permissão foi publicada.');
+ }
+}
+function montarNovoPara(p){
+ if(sessaoAluno)return;
+ sessaoAluno={uid:p.uid,nome:(p.nome||p.email||'aluno'),backup:dados,backupOrdem:ORDEM.slice(),backupTreino:treinoAtual};
+ dados={treinos:{A:[]},progresso:{},pesos:{},nomes:{},concluidos:{},medidas:{altura:'',pesos:{}}};
+ ORDEM=atualizarOrdem();
+ treinoAtual=ORDEM[0];
+ document.getElementById('modalProfessor').hidden=true;
+ mudarVista('treinos');
+ editando=true;
+ document.body.classList.add('editando');
+ document.getElementById('btnEditar').textContent='Terminar edição';
+ document.getElementById('bannerAlunoNome').textContent=sessaoAluno.nome;
+ document.getElementById('bannerAluno').hidden=false;
+ render();
+}
+function sairMontarNovo(){
+ if(!sessaoAluno)return;
+ dados=sessaoAluno.backup;
+ ORDEM=sessaoAluno.backupOrdem;
+ treinoAtual=sessaoAluno.backupTreino;
+ sessaoAluno=null;
+ editando=false;
+ document.body.classList.remove('editando');
+ document.getElementById('btnEditar').textContent='Editar';
+ document.getElementById('bannerAluno').hidden=true;
+ render();
+}
+document.getElementById('btnSalvarAluno').onclick=async function(){
+ if(!sessaoAluno)return;
+ const temNovo=Object.keys(dados.treinos).some(function(t){
+  const a=dados.treinos[t];
+  return Array.isArray(a)&&a.some(function(e){return e&&String(e.nome||'').trim()});
+ });
+ if(!temNovo){alert('Adicione ao menos um exercício antes de salvar.');return}
+ statusSalvar('Enviando treino novo para '+sessaoAluno.nome+'...');
+ try{
+  const fb=await getFB();const db=fb.db;const ref=fb.F.doc(db,'usuarios',sessaoAluno.uid);
+  await fb.F.runTransaction(db,async function(tx){
+   const s=await tx.get(ref);
+   const cur=(s.exists()&&s.data().treinos&&typeof s.data().treinos==='object')?JSON.parse(JSON.stringify(s.data().treinos)):{};
+   Object.keys(dados.treinos).forEach(function(t){
+    const a=dados.treinos[t].filter(function(e){return e&&String(e.nome||'').trim()});
+    if(a.length)cur[t]=a;
+   });
+   tx.set(ref,{treinos:cur},{merge:true});
+  });
+  const nome=sessaoAluno.nome;
+  sairMontarNovo();
+  statusSalvar('Treino enviado para '+nome+'. O aluno verá quando abrir no celular dele.');
+ }catch(e){
+  console.error('salvarTreinoAluno',e);
+  statusSalvar('Não foi possível enviar ('+((e&&e.code)||e.message||'erro')+'). Verifique se a nova permissão foi publicada.');
+ }
+};
+document.getElementById('btnCancelarAluno').onclick=function(){
+ if(confirm('Cancelar sem enviar? O treino montado será descartado.')){sairMontarNovo();statusSalvar('Cancelado. Nada foi enviado.')}
+};
+document.getElementById('btnFecharProf').onclick=function(){
+ document.getElementById('modalProfessor').hidden=true;
+};
+document.getElementById('modalProfessor').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
+document.getElementById('profBusca').oninput=carregarPainelProfessor;
 
 async function iniciarAuth(){
   const fb=await getFB();
@@ -1052,6 +1309,7 @@ async function iniciarAuth(){
     if(u){
      render();
      baixarNuvem();
+     garantirPerfil();
     }else{
      const tinha=!!dados&&temConteudo(dados);
      limparDadosNavegador();
@@ -1066,6 +1324,7 @@ function abrirPerfil(){
   document.getElementById('perfilAvatar').textContent=(usuario.displayName||usuario.email||'U').trim().charAt(0).toUpperCase()||'U';
   document.getElementById('perfilNome').textContent=usuario.displayName||'(sem nome)';
   document.getElementById('perfilEmail').textContent=usuario.email||'';
+  atualizarCargoPerfil();
   document.getElementById('modalPerfil').hidden=false;
 }
 function abrirLogin(){
