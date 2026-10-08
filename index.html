@@ -528,6 +528,7 @@ function carregar(){
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
   if(!j.nomes||typeof j.nomes!=='object')j.nomes={};
+  if(!j.concluidos||typeof j.concluidos!=='object')j.concluidos={};
   return j;
 }
 function podar(){
@@ -726,15 +727,24 @@ document.getElementById('btnModelo').onclick=function(){
 };
 document.getElementById('btnLimpar').onclick=function(){
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
-  feitos().length=0; salvar(); render();
+  feitos().length=0;
+  if(dados.concluidos&&dados.concluidos[hoje()])delete dados.concluidos[hoje()][treinoAtual];
+  salvar(); render();
 };
 document.getElementById('btnConcluir').onclick=function(){
   const arr=(dados.treinos[treinoAtual]||[]).filter(function(e){return String(e.nome||'').trim()});
   if(!arr.length){mostrarStatus('Não há exercícios no Treino '+treinoAtual+' para concluir.');return}
-  const f=feitos();let mudou=false;
-  arr.forEach(function(e){if(f.indexOf(e.id)<0){f.push(e.id);mudou=true}});
-  if(mudou){salvar();render();mostrarStatus('Treino '+treinoAtual+' concluído e salvo.')}
-  else{mostrarStatus('Treino '+treinoAtual+' já estava concluído hoje.')}
+  const hj=hoje();
+  if(!dados.concluidos)dados.concluidos={};
+  if(!dados.concluidos[hj])dados.concluidos[hj]={};
+  if(dados.concluidos[hj][treinoAtual]){
+    mostrarStatus('Treino '+treinoAtual+' já foi concluído hoje e segue salvo.');
+    return;
+  }
+  dados.concluidos[hj][treinoAtual]=true;
+  feitos().length=0;
+  salvar(); render();
+  mostrarStatus('Treino '+treinoAtual+' concluído e salvo! Bom descanso.');
 };
 const CHAVE_NOITE='academia_noite';
 function aplicarNoite(n){
@@ -813,6 +823,7 @@ function montarDoc(){
     progresso:dados.progresso,
     pesos:dados.pesos,
     nomes:dados.nomes,
+    concluidos:dados.concluidos,
     nome:(usuario&&usuario.displayName)||'',
     email:(usuario&&usuario.email)||'',
     atualizadoEm:Date.now()
@@ -867,6 +878,15 @@ function mesclarNuvem(c){
   if(c.nomes&&typeof c.nomes==='object'){
     Object.keys(c.nomes).forEach(function(t){
       if(ORDEM.indexOf(t)>-1&&c.nomes[t])dados.nomes[t]=String(c.nomes[t]);
+    });
+  }
+  if(c.concluidos&&typeof c.concluidos==='object'){
+    if(!dados.concluidos)dados.concluidos={};
+    Object.keys(c.concluidos).forEach(function(d){
+      const rem=c.concluidos[d];
+      if(!rem||typeof rem!=='object')return;
+      if(!dados.concluidos[d])dados.concluidos[d]={};
+      ORDEM.forEach(function(t){if(rem[t])dados.concluidos[d][t]=true});
     });
   }
 }
@@ -977,7 +997,7 @@ document.getElementById('arquivoBackup').onchange=async function(){
   const obj=JSON.parse(await f.text());
   if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!obj.dados.progresso||!obj.dados.pesos||!ORDEM.every(t=>Array.isArray(obj.dados.treinos[t])))throw Error('formato');
   if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
-  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{}};
+  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{}};
   salvar();render();mostrarStatus('Backup importado com sucesso.');
  }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
 };
@@ -999,7 +1019,19 @@ document.getElementById('irEvolucao').onclick=()=>mudarVista('evolucao');
 document.getElementById('mesAnterior').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()-1);renderCalendario()};
 document.getElementById('mesSeguinte').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()+1);renderCalendario()};
 function dataISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function diasComTreino(){return Object.keys(dados.progresso||{}).filter(d=>Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length))}
+function diasComTreino(){
+  const dias=new Set();
+  const diasChaves=Object.keys(dados.concluidos||{});
+  diasChaves.forEach(function(d){
+    const c=dados.concluidos[d];
+    if(c&&ORDEM.some(function(t){return c[t]}))dias.add(d);
+  });
+  Object.keys(dados.progresso||{}).forEach(function(d){
+    const p=dados.progresso[d];
+    if(p&&Object.values(p).some(function(a){return Array.isArray(a)&&a.length}))dias.add(d);
+  });
+  return Array.from(dias);
+}
 function renderCalendario(){
  const y=mesExibido.getFullYear(),m=mesExibido.getMonth(),grid=document.getElementById('calendario');
  document.getElementById('mesTitulo').textContent=mesExibido.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
