@@ -187,6 +187,14 @@ body.editando .busca-vid{display:none}
 .busca-ex{border:0;background:#eef1e6;color:#73796d;padding:4px 9px;font-size:10px;cursor:pointer;font-family:inherit}
 .busca-ex:active{color:#ee713a}
 body.editando .busca-ex{display:none}
+/* Abas dinâmicas */
+.aba{display:flex;align-items:center;justify-content:center}
+.aba input{width:56px;max-width:64px;background:transparent;border:0;border-bottom:1px solid #c3c8bd;color:inherit;font:inherit;font-size:13px;text-align:center;padding:2px 0}
+.aba input:focus{outline:none;border-bottom-color:#ee713a}
+.aba-rm{background:#ffffff;border:1px solid #c3c8bd;color:#73796d;border-radius:50%;width:20px;height:20px;min-width:20px;font-size:11px;line-height:1;padding:0;cursor:pointer;margin-left:6px;flex-shrink:0}
+.aba-rm:disabled{opacity:.3;cursor:default}
+.aba-add{background:none;border:1px dashed #c3c8bd;color:#73796d;border-radius:14px;width:46px;height:46px;font-size:20px;cursor:pointer;align-self:center;flex-shrink:0}
+body.noite .aba-rm{background:#1e293b;border-color:#475569;color:#94a3b8}
 #btnSincronizar{margin:0 auto;display:inline-block;min-width:150px}
 /* Modo noturno */
 body.noite{background:#0f172a;color:#e2e8f0}
@@ -289,13 +297,7 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
 <section class="welcome"><div class="eyebrow">UM DIA DE CADA VEZ</div><h2>Seu próximo passo<br>começa aqui.</h2><p>Escolha seu treino. Registre suas cargas. Celebre a constância.</p></section>
 <section class="week-card" aria-label="Atividade nesta semana"><div class="week-top"><strong>Sua semana</strong><span id="weekSummary">0 dias com atividade</span></div><div class="week-days" id="weekDays"></div></section>
 <h2 class="section-label">Vamos treinar?</h2>
-<nav id="abas">
-  <button class="aba ativa" data-t="A">A</button>
-  <button class="aba" data-t="B">B</button>
-  <button class="aba" data-t="C">C</button>
-  <button class="aba" data-t="D">D</button>
-  <button class="aba" data-t="E">E</button>
-</nav>
+<nav id="abas" aria-label="Treinos"></nav>
 <section class="painel" aria-label="Resumo dos treinos">
   <div class="indicador"><strong id="totalHoje">0</strong><span>Concluídos hoje</span></div>
   <div class="indicador"><strong id="diasTreino">0</strong><span>Dias treinados</span></div>
@@ -400,7 +402,29 @@ function atualizarPainel(){
  document.getElementById('cargasSalvas').textContent=cargas;
 }
 
-const ORDEM=['A','B','C','D','E'];
+const BASE=['A','B','C','D','E'];
+let ORDEM=BASE.slice();
+function atualizarOrdem(){const ks=Object.keys((dados&&dados.treinos)||{});ORDEM=ks.length?ks:BASE.slice();return ORDEM}
+function garantirTreinoAtual(){if(ORDEM.indexOf(treinoAtual)<0)treinoAtual=ORDEM[0]}
+function proximaLetra(){const ks=Object.keys(dados.treinos);for(const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){if(ks.indexOf(c)<0)return c}return 'X'+(ks.length+1)}
+function adicionarAba(){
+  const t=proximaLetra();
+  if(!dados.nomes)dados.nomes={};
+  dados.treinos[t]=[];
+  treinoAtual=t;
+  atualizarOrdem();
+  salvar(); render();
+}
+function removerAba(t){
+  const ks=Object.keys(dados.treinos);
+  if(ks.length<2){alert('É preciso manter pelo menos um treino.');return}
+  if(!confirm('Remover o treino '+t+'? Os exercícios e as cargas dele serão apagados.'))return;
+  delete dados.treinos[t];
+  if(dados.nomes)delete dados.nomes[t];
+  if(t===treinoAtual)treinoAtual=ks.filter(function(k){return k!==t})[0];
+  atualizarOrdem();
+  salvar(); render();
+}
 const NOMES={A:'Peito e Ombros',B:'Costas e Posterior de Ombros',C:'Pernas',D:'Braços',E:'Full Body'};
 const PADRAO={
 A:[['Peck deck','4','12'],['Supino com halteres','4','12'],['Supino inclinado com barra','4','12'],['Flexão no chão','3','20'],['Desenvolvimento militar','3','12'],['Elevação lateral','3','12'],['Elevação frontal','3','12']],
@@ -419,15 +443,16 @@ const IMGS={
 function novoItem(nome,series,reps){return{id:id(),nome:nome,series:series,reps:reps,img:IMGS[nome]?('img/'+IMGS[nome]):''}}
 function nomeDo(t){const v=dados&&dados.nomes&&dados.nomes[t];return (v&&String(v).trim())?String(v).trim():NOMES[t]}
 function renderAbas(){
-  const edit=editando;
-  document.querySelectorAll('.aba').forEach(function(a){
-    const t=a.dataset.t, nome=nomeDo(t);
+  const nav=document.getElementById('abas'), edit=editando;
+  nav.textContent='';
+  ORDEM.forEach(function(t){
+    const a=document.createElement('button');
+    a.type='button'; a.className='aba'+(t===treinoAtual?' ativa':'');
+    a.dataset.t=t;
+    const nome=nomeDo(t);
     if(edit){
-      let inp=a.firstChild;
-      if(!inp||inp.tagName!=='INPUT'){
-        a.textContent=''; inp=document.createElement('input'); a.appendChild(inp);
-      }
-      if(inp.value!==nome)inp.value=nome;
+      const inp=document.createElement('input');
+      inp.type='text'; inp.value=nome;
       inp.setAttribute('aria-label','Nome do treino '+t);
       inp.oninput=function(){
         const v=inp.value.trim();
@@ -436,11 +461,26 @@ function renderAbas(){
         if(t===treinoAtual)document.getElementById('nomeTreino').textContent='Treino '+t+' — '+nomeDo(t);
       };
       inp.onfocus=function(){if(this.value===nome&&this.select)this.select()};
+      a.appendChild(inp);
+      const rm=document.createElement('button');
+      rm.type='button'; rm.className='aba-rm'; rm.textContent='×';
+      rm.setAttribute('aria-label','Remover treino '+t);
+      rm.disabled=(ORDEM.length<2);
+      rm.onclick=function(ev){ev.stopPropagation();removerAba(t)};
+      a.appendChild(rm);
     }else{
       a.textContent=t;
       a.title=(nome===NOMES[t]||nome===t)?'Treino '+t:nome;
     }
+    nav.appendChild(a);
   });
+  if(edit){
+    const ad=document.createElement('button');
+    ad.type='button'; ad.className='aba-add'; ad.textContent='+';
+    ad.setAttribute('aria-label','Adicionar novo treino');
+    ad.onclick=function(ev){ev.stopPropagation();adicionarAba()};
+    nav.appendChild(ad);
+  }
 }
 function imgDe(ex){if(ex.img)return ex.img;const s=IMGS[ex.nome];if(!s)return '';return (window.FOTOS&&FOTOS[s])||('img/'+s+'.jpg')}
 function fotoPropria(ex){return typeof ex.img==='string'&&ex.img.indexOf('data:')===0}
@@ -489,7 +529,7 @@ let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, altera
 function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg}
 function migrarConclusoes(j){
  j.progresso=j.progresso||{};
- for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of ORDEM){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
+ for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of Object.keys(j.treinos||{})){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
  j.concluidos={};return j;
 }
 function diaAtivo(d){return Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)}
@@ -534,7 +574,7 @@ function salvarSerie(ex,idx,bruto){
 }
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
 function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
-function novoModelo(){const o={};ORDEM.forEach(function(t){o[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})});return o}
+function novoModelo(){const o={};BASE.forEach(function(t){o[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})});return o}
 function treinosVaziosCompletos(){return ORDEM.every(function(t){const a=dados.treinos[t];return !a||!a.length})}
 const JAPERG='modelo_ja_perguntado';
 function perguntarModelo(){
@@ -552,7 +592,7 @@ function localPuroModelo(){
     const t=dados.progresso[dias[i]];
     for(const k in t){if(Array.isArray(t[k])&&t[k].length)return false}
   }
-  return ORDEM.every(function(t){
+return BASE.every(function(t){
     const a=dados.treinos[t];
     if(!Array.isArray(a)||a.length!==PADRAO[t].length)return false;
     return PADRAO[t].every(function(e,i){return a[i]&&a[i].nome===e[0]&&a[i].series===e[1]&&a[i].reps===e[2]});
@@ -566,9 +606,7 @@ function carregar(){
     try{j=JSON.parse(localStorage.getItem('academia_v2'))}catch(e){}
   }
   if(!j||!j.treinos)j={treinos:{},progresso:{}};
-  ORDEM.forEach(function(t){
-    if(!Array.isArray(j.treinos[t]))j.treinos[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])});
-  });
+  if(!Object.keys(j.treinos).length){BASE.forEach(function(t){j.treinos[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})})}
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
   if(!j.nomes||typeof j.nomes!=='object')j.nomes={};
@@ -782,6 +820,7 @@ document.getElementById('btnModelo').onclick=function(){
   dados.pesos={};
   dados.nomes={};
   dados.concluidos={};
+  atualizarOrdem(); treinoAtual=BASE[0];
   salvar(); render();
 };
 document.getElementById('btnLimpar').textContent='Desmarcar este treino de hoje';
@@ -919,12 +958,13 @@ async function baixarNuvem(){
   baseNuvem=c?versaoNuvem(c):null;
   if(c){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
-   if(!remote.treinos||!ORDEM.every(t=>Array.isArray(remote.treinos[t])))throw Error('Dados da nuvem inválidos');
+   if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
    if(assinatura(remote)!==assinatura(dados)){
     if(confirm('Há dados diferentes na conta. OK: carregar a versão da nuvem. Cancelar: manter a versão deste navegador e enviá-la à conta. Uma cópia de segurança local será guardada antes da troca.')){
      try{localStorage.setItem(CHAVE+'_antes_sincronizar',JSON.stringify(dados))}catch(e){statusSalvar('Não foi possível guardar a cópia. Exporte um backup antes de trocar a versão.');return}
      dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{}};
+     atualizarOrdem();garantirTreinoAtual();
      alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
     }
    }
@@ -1026,9 +1066,10 @@ document.getElementById('arquivoBackup').onchange=async function(){
  if(f.size>10*1024*1024){mostrarStatus('Arquivo muito grande (máximo 10 MB).');return}
  try{
   const obj=JSON.parse(await f.text());
-  if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!obj.dados.progresso||!obj.dados.pesos||!ORDEM.every(t=>Array.isArray(obj.dados.treinos[t])))throw Error('formato');
+  if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!Object.keys(obj.dados.treinos).length||!obj.dados.progresso||!obj.dados.pesos||!Object.values(obj.dados.treinos).every(a=>Array.isArray(a)))throw Error('formato');
   if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
   dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{}};
+  atualizarOrdem();garantirTreinoAtual();
   migrarConclusoes(dados);salvar();render();mostrarStatus(localSalvo?'Backup importado e salvo neste navegador.':'Backup carregado, mas não salvo. Exporte os dados antes de fechar.');
  }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
 };
@@ -1039,6 +1080,8 @@ function mudarVista(v){
  const evo=v==='evolucao';
  document.getElementById('viewEvolucao').hidden=!evo;
  document.getElementById('viewTreinos').hidden=evo;
+ const be=document.getElementById('btnEditar');be.hidden=evo;
+ if(evo){sairDoModoEdicao();render()}
  for(const [id,ativo] of [['irTreinos',!evo],['irEvolucao',evo]]){
   const b=document.getElementById(id);b.classList.toggle('selecionado',ativo);b.setAttribute('aria-pressed',String(ativo));
  }
@@ -1065,7 +1108,7 @@ function renderCalendario(){
 }
 function historicosDisponiveis(){
  const res=[];const ids=new Set();
- ORDEM.forEach(t=>(dados.treinos[t]||[]).forEach(ex=>{
+ Object.keys(dados.treinos).forEach(t=>(dados.treinos[t]||[]).forEach(ex=>{
   if(ids.has(ex.id))return;ids.add(ex.id);
   const reg=dados.pesos[ex.id];if(reg&&Array.isArray(reg.hist)&&reg.hist.length)res.push({id:ex.id,nome:ex.nome,reg});
  }));return res;
@@ -1122,7 +1165,7 @@ document.getElementById('btnInstalar').onclick=async function(){
 };
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
 
-dados=carregar(); salvarLocal(); render(); atualizaBotaoConta();
+dados=carregar(); atualizarOrdem(); garantirTreinoAtual(); salvarLocal(); render(); atualizaBotaoConta();
 let diaVisivel=hoje();setInterval(()=>{if(hoje()!==diaVisivel){diaVisivel=hoje();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}},15000);
 if(temConfig()){
   iniciarAuth().catch(function(){
