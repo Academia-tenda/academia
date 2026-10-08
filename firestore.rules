@@ -3,13 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isDono(uid) {
-      if (!exists(/databases/$(database)/documents/perfis/_adm)) return false;
-      return get(/databases/$(database)/documents/perfis/_adm).data.dono == uid;
+      return exists(/databases/$(database)/documents/perfis/_adm) && get(/databases/$(database)/documents/perfis/_adm).data.dono == uid;
     }
     function isProf(uid) {
-      if (isDono(uid)) return true;
-      if (!exists(/databases/$(database)/documents/perfis/$(uid))) return false;
-      return get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['professor', 'dono'];
+      return isDono(uid) || (exists(/databases/$(database)/documents/perfis/$(uid)) && get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['professor', 'dono']);
     }
 
     match /perfis/_adm {
