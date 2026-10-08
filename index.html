@@ -653,7 +653,7 @@ function podar(){
   });
 }
 function salvarLocal(){
- try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;statusSalvar(usuario?'Salvo neste navegador · sincronização pendente':'Salvo neste navegador');return true}
+ try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;statusSalvar(usuario?(navigator.onLine?'Salvo neste navegador':'Salvo no aparelho · sem conexão') : 'Salvo neste navegador');return true}
  catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
 }
 function salvar(){alteracao++;salvarLocal();agendarEnvio();atualizarPainel();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
