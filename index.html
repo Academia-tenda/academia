@@ -76,8 +76,6 @@ body.editando .thumb{display:none}
 .vazio{padding:30px 16px;text-align:center;color:#8c9385;background:#ffffff;border:1px dashed #e3e5dc;border-radius:14px;font-size:14px;line-height:1.6}
 #btnAdicionar{display:none;width:calc(100% - 32px);margin:12px 16px 0;padding:13px 0;font-size:15px;justify-content:center}
 body.editando #btnAdicionar{display:flex}
-#btnModelo{display:none;width:calc(100% - 32px);margin:10px 16px 0;padding:13px 0;font-size:14.5px;background:#ffffff;color:#73796d}
-body.editando #btnModelo{display:block}
 .rodape{margin:18px 16px 0}
 .rodape .btn{width:100%;padding:13px 0;font-size:14.5px}
 .overlay{position:fixed;inset:0;background:rgba(2,6,23,.78);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -177,7 +175,7 @@ body.noite .brand-small{color:#94a3b8}
 .progresso{margin:16px 24px;padding:22px;border:0;border-radius:22px;background:#22251f;color:#fff}.nomeTreino{font-size:18px;color:#fff;letter-spacing:-.4px;margin-bottom:17px}.barra{background:#44483e;height:7px}.ptxt{color:#bec4b5;font-size:11px;margin-top:12px}.cardio{margin:0 24px;border:0;padding:13px 16px;font-size:12px;border-radius:14px}.cardio b{color:#51594c}
 #lista{margin:20px 24px 0;gap:12px}.item{border:1px solid #eceee5;border-radius:22px;padding:18px;gap:12px;box-shadow:0 3px 12px #22251f03}.nome{font-size:15px;font-weight:750;letter-spacing:-.2px}.meta{font-size:12px}.check{width:30px;height:30px;min-width:30px;border-color:#d7dccf}.item.done{background:#f0f3e8}.item.done .nome{color:#73796d}.thumb{width:52px;height:52px;min-width:52px;border-radius:14px;background:#eeefe7}.histbtn{border:0;background:#fff0e5;padding:4px 9px;font-size:10px}.seriespeso{gap:8px;margin-top:2px}.sp{flex:1;min-width:70px;border:0;background:#f7f7f2;padding:10px 8px;border-radius:11px}.sp input{width:100%;color:#22251f;font-weight:750}.sp b{color:#73796d}
 .evolucao{padding:8px 24px 32px}.secao{border:0;padding:22px;border-radius:24px}.secao h2{font-size:19px;letter-spacing:-.5px}.cal-day.active{background:#fff0e5;color:#b55528}.cal-day.today{outline-color:#ee713a}.caixa{border-radius:26px;box-shadow:0 20px 80px #22251f25}.caixa input{color:#22251f}.overlay{background:#22251f70;backdrop-filter:blur(6px)}
-#btnAdicionar,#btnModelo{width:calc(100% - 48px);margin-left:24px;margin-right:24px}.rodape .btn{font-size:12px}.aviso{margin-left:24px;margin-right:24px}.vazio{background:#fff}
+#btnAdicionar{width:calc(100% - 48px);margin-left:24px;margin-right:24px}.rodape .btn{font-size:12px}.aviso{margin-left:24px;margin-right:24px}.vazio{background:#fff}
 @media(min-width:760px){#lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.welcome h2{font-size:40px}.week-card{padding:24px}.week-dot{max-width:48px}.week-days{max-width:520px}.item{min-height:144px}}
 @media(max-width:390px){header{padding:16px}.topo{gap:5px}.topo .btn{font-size:12px;padding:8px 10px}.welcome,.week-card{margin-left:16px;margin-right:16px}.welcome h2{font-size:27px}#lista,.progresso{margin-left:16px;margin-right:16px}.painel{margin-left:16px;margin-right:16px}nav{padding:0 16px}.week-days{gap:5px}.item{padding:14px}}
 
@@ -325,7 +323,6 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
 </div>
 <button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
-<button class="btn" id="btnModelo">Carregar modelo (A–E)</button>
 <div class="rodape"><button class="btn warn" id="btnLimpar">Limpar marcações de hoje</button></div>
 <div class="acoesDados"><button class="btn" id="btnExportar" type="button">Exportar backup</button><button class="btn" id="btnImportar" type="button">Importar backup</button></div>
 <input type="file" id="arquivoBackup" accept=".json,application/json" hidden>
@@ -587,17 +584,7 @@ function salvarSerie(ex,idx,bruto){
 }
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
 function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
-function novoModelo(){const o={};BASE.forEach(function(t){o[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})});return o}
 function treinosVaziosCompletos(){return ORDEM.every(function(t){const a=dados.treinos[t];return !a||!a.length})}
-const JAPERG='modelo_ja_perguntado';
-function perguntarModelo(){
-  if(localStorage.getItem(JAPERG))return;
-  localStorage.setItem(JAPERG,'1');
-  if(treinosVaziosCompletos()&&confirm('Sua conta está vazia. Carregar o modelo de treino A–E para começar?')){
-    dados.treinos=novoModelo();
-    salvar(); render();
-  }
-}
 function localPuroModelo(){
   if(Object.keys(dados.pesos).length)return false;
   const dias=Object.keys(dados.progresso);
@@ -619,7 +606,7 @@ function carregar(){
     try{j=JSON.parse(localStorage.getItem('academia_v2'))}catch(e){}
   }
   if(!j||!j.treinos)j={treinos:{},progresso:{}};
-  if(!Object.keys(j.treinos).length){BASE.forEach(function(t){j.treinos[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})})}
+  if(!Object.keys(j.treinos).length){j.treinos.A=[]}
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
   if(!j.medidas||typeof j.medidas!=='object')j.medidas={altura:'',pesos:{}};
@@ -827,16 +814,6 @@ document.getElementById('btnAdicionar').onclick=function(){
   dados.treinos[treinoAtual].push({id:id(),nome:'',series:'',reps:''});
   focarNovo=true; salvar(); render();
 };
-document.getElementById('btnModelo').onclick=function(){
-  if(!confirm('Substituir todos os seus treinos pelo modelo A–E? Marcações e pesos serão apagados.'))return;
-  dados.treinos=novoModelo();
-  dados.progresso={};
-  dados.pesos={};
-  dados.nomes={};
-  dados.concluidos={};
-  atualizarOrdem(); treinoAtual=BASE[0];
-  salvar(); render();
-};
 document.getElementById('btnLimpar').textContent='Desmarcar este treino de hoje';
 document.getElementById('btnLimpar').onclick=function(){
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
@@ -975,7 +952,7 @@ async function baixarNuvem(){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-   if(assinatura(remote)!==assinatura(dados)&&ehPadrao()){
+   if(assinatura(remote)!==assinatura(dados)&&(ehPadrao()||treinosVaziosCompletos())){
     localStorage.removeItem(CHAVE+'_antes_sincronizar');
     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
     atualizarOrdem();garantirTreinoAtual();
