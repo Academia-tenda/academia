@@ -19,6 +19,20 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(function (resp) {
+        if (resp && resp.ok) {
+          const c = resp.clone();
+          caches.open(CACHE).then(function (ca) { ca.put(e.request, c); });
+        }
+        return resp;
+      }).catch(function () {
+        return caches.match(e.request).then(function (r) { return r || caches.match('./index.html'); });
+      })
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function (r) {
       if (r) return r;
