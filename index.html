@@ -199,6 +199,14 @@ function imgDe(ex){if(ex.img)return ex.img;return IMGS[ex.nome]?('img/'+IMGS[ex.
 function fotoPropria(ex){return typeof ex.img==='string'&&ex.img.indexOf('data:')===0}
 function carregarFoto(ex,inp){
   const f=inp.files&&inp.files[0];if(!f)return;
+  const ehGif= /image\/gif|\.gif$/i.test(f.type||f.name);
+  if(ehGif){
+    if(f.size>1800000){alert('GIF muito grande (máx. 1,8 MB).');inp.value='';return}
+    const rd=new FileReader();
+    rd.onload=function(){ex.img=String(rd.result);inp.value='';salvar();render()};
+    rd.readAsDataURL(f);
+    return;
+  }
   const img=new Image(),url=URL.createObjectURL(f);
   img.onload=function(){
     const max=360;let w=img.width||max,h=img.height||max;
