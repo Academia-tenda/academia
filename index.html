@@ -576,6 +576,9 @@ function carregarFoto(ex,inp){
   img.onerror=function(){URL.revokeObjectURL(url)};
   img.src=url;inp.value='';
 }
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirImagem(ex){
   const src=imgDe(ex);if(!src)return;
   document.getElementById('imgGrande').src=src;
@@ -585,6 +588,9 @@ function abrirImagem(ex){
 }
 document.getElementById('btnFecharImg').onclick=function(){document.getElementById('modalImg').hidden=true};
 document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirBusca(q){
   const txt=String(q||'').trim().replace(/\s+/g,' ');
   if(!txt)return;
@@ -855,6 +861,9 @@ function render(){
   atualizarPainel();
   atualizarInicio();
 }
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirHistorico(ex){
   const reg=dados.pesos[ex.id];
   document.getElementById('histTitulo').textContent='Evolução — '+ex.nome;
@@ -1140,6 +1149,9 @@ async function ativarDono(){
   alert('Não foi possível ativar: já existe um responsável na academia. Abra o app com a conta do responsável atual para liberar pedidos.');
  }
 }
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirPainelProfessor(){
  if(!usuario||(meuPerfil!=='professor'&&meuPerfil!=='dono'))return;
  document.getElementById('modalProfessor').hidden=false;
@@ -1326,6 +1338,9 @@ async function iniciarAuth(){
 document.getElementById('btnConta').onclick=function(){
   if(usuario){abrirPerfil()}else{abrirLogin()}
 };
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirPerfil(){
   document.getElementById('perfilAvatar').textContent=(usuario.displayName||usuario.email||'U').trim().charAt(0).toUpperCase()||'U';
   document.getElementById('perfilNome').textContent=usuario.displayName||'(sem nome)';
@@ -1333,6 +1348,9 @@ function abrirPerfil(){
   atualizarCargoPerfil();
   document.getElementById('modalPerfil').hidden=false;
 }
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function abrirLogin(){
   document.getElementById('loginErro').textContent='';
   document.getElementById('modalLogin').hidden=false;
@@ -1583,5 +1601,9 @@ if(temConfig()){
 </script>
 </body>
 </html>
+
+
+
+
 
 
