@@ -920,6 +920,13 @@ function agendarEnvio(){
 }
 function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{}])}
 function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
+function temConteudo(d){
+ if(!d)return false;
+ if(Object.values(d.treinos||{}).some(function(a){return Array.isArray(a)&&a.some(function(x){return x&&String(x.nome||'').trim()})}))return true;
+ if(Object.values(d.progresso||{}).some(function(t){for(const k in t){if(Array.isArray(t[k])&&t[k].length)return true}return false}))return true;
+ if(Object.values(d.pesos||{}).some(function(r){return r&&Array.isArray(r.hist)&&r.hist.length}))return true;
+ return false;
+}
 async function enviarNuvem(forcar){
  if(!usuario||syncOcupado)return;
  const forza=!!forcar;
@@ -930,15 +937,17 @@ async function enviarNuvem(forcar){
  try{
   const fb=await getFB();const ref=fb.F.doc(fb.db,'usuarios',uid);
   await fb.F.runTransaction(fb.db,async tx=>{
-   const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data()):null;
+const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data()):null;
    if(remote!==expected&&!forza)throw erroComCodigo('conflito');
+   if(!forza&&snap.exists()&&temConteudo(snap.data())&&!temConteudo(dados))throw erroComCodigo('nuvem-tem-dados');
    if(!usuario||usuario.uid!==uid)throw erroComCodigo('conta-alterada');
    tx.set(ref,payload);
-  });
-  if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;syncPronto=true;statusSalvar(forza?'Enviado para a nuvem: a versão deste navegador agora está salva na sua conta.':'Salvo neste navegador e na nuvem')}
- }catch(e){
-  if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Toque em Sincronizar para enviar a versão deste navegador.')}
-  else statusSalvar(localSalvo?'Salvo neste navegador · nuvem pendente. Tente sincronizar novamente.':'Salvamento falhou. Exporte um backup antes de fechar.');
+   });
+   if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;syncPronto=true;statusSalvar(forza?'Enviado para a nuvem: a versão deste navegador agora está salva na sua conta.':'Salvo neste navegador e na nuvem')}
+  }catch(e){
+   if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Toque em Sincronizar para enviar a versão deste navegador.')}
+   else if(e.code==='nuvem-tem-dados'){syncPronto=false;statusSalvar('Sua conta já tem dados na nuvem e este navegador está vazio. Carregando os dados da conta...');setTimeout(baixarNuvem,400)}
+   else statusSalvar(localSalvo?'Salvo neste navegador · nuvem pendente. Tente sincronizar novamente.':'Salvamento falhou. Exporte um backup antes de fechar.');
  }finally{syncOcupado=false;if(!forza&&syncPronto&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
@@ -952,7 +961,7 @@ async function baixarNuvem(){
    const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
    if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
    if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-   if(assinatura(remote)!==assinatura(dados)&&(ehPadrao()||treinosVaziosCompletos())){
+   if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
     localStorage.removeItem(CHAVE+'_antes_sincronizar');
     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
     atualizarOrdem();garantirTreinoAtual();
