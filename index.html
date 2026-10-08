@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
 <meta name="color-scheme" content="dark">
-<title>Academia</title>
+<title>Academia Tenda — Meus treinos</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -105,6 +105,48 @@ body.editando #btnModelo{display:block}
 #btnFecharHist{width:100%;padding:12px}
 .aviso{margin:0 16px;padding:10px 14px;background:#3b2f0b;border:1px solid #78590f;border-radius:12px;font-size:13px;color:#fbbf24;line-height:1.45}
 .aviso[hidden]{display:none}
+
+/* Painel de acompanhamento */
+.painel{margin:14px 16px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.indicador{background:#1e293b;border:1px solid #334155;border-radius:13px;padding:12px 9px;text-align:center}
+.indicador strong{display:block;font-size:22px;color:#4ade80;font-variant-numeric:tabular-nums}
+.indicador span{display:block;font-size:11px;color:#94a3b8;margin-top:4px}
+.acoesDados{display:flex;gap:8px;margin:12px 16px 0}
+.acoesDados .btn{flex:1;font-size:12px;padding:10px 6px}
+#statusDados{margin:8px 16px 0;color:#94a3b8;font-size:12px;min-height:16px}
+button:focus-visible,input:focus-visible{outline:2px solid #4ade80;outline-offset:2px}
+@media(min-width:760px){body{max-width:760px;margin:auto}.painel{gap:12px}}
+@media(max-width:370px){header{padding:12px 10px 8px}.topo{gap:4px}.topo .btn{padding:8px 9px}nav{padding-left:10px;padding-right:10px}}
+
+/* Navegação e área de evolução */
+.view-switch{display:flex;gap:8px;margin:14px 16px 0}
+.view-switch .btn{flex:1;padding:12px}
+.view-switch .selecionado{background:#166534;border-color:#22c55e;color:#fff}
+#viewEvolucao[hidden],#viewTreinos[hidden]{display:none}
+.evolucao{padding:0 16px 32px}
+.secao{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:16px;margin-top:14px}
+.secao h2{font-size:17px;margin:0 0 7px}
+.secao p{font-size:13px;color:#94a3b8;line-height:1.5;margin:0 0 12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.cal-nav strong{font-size:15px}
+.cal-nav .btn{padding:7px 12px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-day{aspect-ratio:1;display:grid;place-items:center;border-radius:9px;font-size:12px;color:#94a3b8;position:relative}
+.cal-day.head{aspect-ratio:auto;padding:5px 0;font-weight:700;color:#cbd5e1}
+.cal-day.active{background:#14532d;color:#bbf7d0;font-weight:700}
+.cal-day.today{outline:2px solid #4ade80;outline-offset:-2px}
+.cal-day.empty{visibility:hidden}
+.cal-legend{margin-top:10px;font-size:12px;color:#94a3b8}
+.chart-wrap{width:100%;overflow-x:auto}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.chart-select{width:100%;margin:4px 0 14px;background:#0f172a;border:1px solid #475569;border-radius:10px;color:#e2e8f0;padding:12px;font:inherit}
+.mini-stat{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #334155;padding:11px 0;font-size:13px}
+.mini-stat span{color:#94a3b8}
+.mini-stat b{color:#e2e8f0;text-align:right}
+.small-note{font-size:12px;color:#94a3b8;line-height:1.5}
+body{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
+@media(min-width:900px){body{max-width:900px}.evolucao{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evolucao .secao{margin-top:14px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -116,6 +158,11 @@ body.editando #btnModelo{display:block}
     <button class="btn" id="btnConta" hidden>Entrar</button>
   </div>
 </header>
+<div class="view-switch" aria-label="Seções do aplicativo">
+<button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true">Treinos</button>
+<button class="btn" id="irEvolucao" type="button" aria-pressed="false">Minha evolução</button>
+</div>
+<div id="viewTreinos">
 <nav id="abas">
   <button class="aba ativa" data-t="A">A</button>
   <button class="aba" data-t="B">B</button>
@@ -123,17 +170,37 @@ body.editando #btnModelo{display:block}
   <button class="aba" data-t="D">D</button>
   <button class="aba" data-t="E">E</button>
 </nav>
+<section class="painel" aria-label="Resumo dos treinos">
+  <div class="indicador"><strong id="totalHoje">0</strong><span>Concluídos hoje</span></div>
+  <div class="indicador"><strong id="diasTreino">0</strong><span>Dias treinados</span></div>
+  <div class="indicador"><strong id="cargasSalvas">0</strong><span>Registros de carga</span></div>
+</section>
 <section class="progresso">
   <div class="nomeTreino" id="nomeTreino">Treino A — Peito e Ombros</div>
   <div class="barra"><div id="barraFill"></div></div>
   <div class="ptxt"><span id="progTexto">0/0 (0%)</span><span id="dataTexto"></span></div>
 </section>
-<div class="cardio">Cardio: <b>20 min todos os dias</b> — bike, passadeira ou elíptico</div>
+<div class="cardio">Atividade complementar: <b>personalize conforme sua rotina</b> — bike, caminhada ou elíptico</div>
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
 <button class="btn" id="btnModelo">Carregar modelo (A–E)</button>
 <div class="rodape"><button class="btn warn" id="btnLimpar">Limpar marcações de hoje</button></div>
+<div class="acoesDados"><button class="btn" id="btnExportar" type="button">Exportar backup</button><button class="btn" id="btnImportar" type="button">Importar backup</button></div>
+<input type="file" id="arquivoBackup" accept=".json,application/json" hidden>
+<div id="statusDados" role="status" aria-live="polite"></div>
+</div>
+<section id="viewEvolucao" class="evolucao" hidden aria-label="Painel de evolução">
+  <div class="secao"><h2>Calendário de treinos</h2><p>Os dias destacados têm pelo menos um exercício marcado como concluído.</p>
+  <div class="cal-nav"><button class="btn" id="mesAnterior" aria-label="Mês anterior">‹</button><strong id="mesTitulo"></strong><button class="btn" id="mesSeguinte" aria-label="Mês seguinte">›</button></div>
+  <div class="cal-grid" id="calendario"></div><div class="cal-legend">● Dia com atividade registrada</div></div>
+  <div class="secao"><h2>Evolução das cargas</h2><p>Selecione um exercício para visualizar a maior carga registrada em cada dia.</p>
+  <select class="chart-select" id="selecionarExercicio" aria-label="Selecionar exercício"></select>
+  <div class="chart-wrap" id="graficoCargas"></div><div class="small-note">A evolução de cargas é apenas um registro, não uma meta a ser superada a cada sessão.</div></div>
+  <div class="secao"><h2>Resumo da atividade</h2><div id="resumoEvolucao"></div></div>
+  <div class="secao"><h2>Seus dados</h2><p>Os registros ficam salvos neste navegador. Com login configurado, o aplicativo também tenta sincronizar com o Firebase.</p>
+  <button class="btn" id="exportarCSV" type="button" style="width:100%">Exportar histórico de cargas (CSV)</button></div>
+</section>
 
 <div class="overlay" id="modalLogin" hidden>
   <div class="caixa">
@@ -180,6 +247,18 @@ body.editando #btnModelo{display:block}
 <script src="firebase-config.js"></script>
 <script>
 const CHAVE='academia_v3';
+function mostrarStatus(msg){const el=document.getElementById('statusDados');if(el)el.textContent=msg}
+function atualizarPainel(){
+ if(!dados)return;
+ const dias=Object.keys(dados.progresso||{});
+ const totalHoje=Object.values(dados.progresso[hoje()]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+ const diasAtivos=dias.filter(d=>Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)).length;
+ const cargas=Object.values(dados.pesos||{}).reduce((n,r)=>n+(Array.isArray(r.hist)?r.hist.length:0),0);
+ document.getElementById('totalHoje').textContent=totalHoje;
+ document.getElementById('diasTreino').textContent=diasAtivos;
+ document.getElementById('cargasSalvas').textContent=cargas;
+}
+
 const ORDEM=['A','B','C','D','E'];
 const NOMES={A:'Peito e Ombros',B:'Costas e Posterior de Ombros',C:'Pernas',D:'Braços',E:'Full Body'};
 const PADRAO={
@@ -309,20 +388,16 @@ function carregar(){
   });
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
-  const h=hoje();
-  j.progresso=j.progresso[h]?{[h]:j.progresso[h]}:{};
   return j;
 }
 function podar(){
-  const lim=new Date(Date.now()-60*864e5).toISOString().slice(0,10);
-  Object.keys(dados.progresso).forEach(function(d){if(d<lim)delete dados.progresso[d]});
   Object.keys(dados.pesos).forEach(function(k){
     const h=dados.pesos[k];
     if(h&&Array.isArray(h.hist)){h.hist.sort(function(a,b){return a.d<b.d?-1:1});if(h.hist.length>200)h.hist=h.hist.slice(-200)}
   });
 }
-function salvarLocal(){podar();try{localStorage.setItem(CHAVE,JSON.stringify(dados))}catch(e){}}
-function salvar(){salvarLocal();agendarEnvio()}
+function salvarLocal(){podar();try{localStorage.setItem(CHAVE,JSON.stringify(dados))}catch(e){mostrarStatus('Armazenamento cheio. Exporte um backup para proteger seus dados.')}}
+function salvar(){salvarLocal();agendarEnvio();atualizarPainel()}
 function feitos(){
   const h=hoje();
   if(!dados.progresso[h])dados.progresso[h]={};
@@ -345,7 +420,7 @@ function render(){
   if(!visiveis.length&&!editando){
     const d=document.createElement('div');
     d.className='vazio';
-    d.textContent=usuario?'Nenhum exercício ainda. Toque em Editar para adicionar.':'Nenhum exercício ainda. Entre na conta para montar seu treino.';
+    d.textContent='Nenhum exercício ainda. Toque em Editar para adicionar.';
     lista.appendChild(d);
   }
   arr.forEach(function(ex){
@@ -355,6 +430,7 @@ function render(){
     chk.className='check';
     chk.textContent='✓';
     chk.setAttribute('aria-label','Marcar '+ex.nome);
+    chk.setAttribute('aria-pressed',String(feitosArr.indexOf(ex.id)>-1));
     chk.onclick=function(){
       const f=feitos(), i=f.indexOf(ex.id);
       if(i>-1)f.splice(i,1); else f.push(ex.id);
@@ -445,6 +521,7 @@ function render(){
   });
   focarNovo=false;
   atualizaProgresso();
+  atualizarPainel();
 }
 function abrirHistorico(ex){
   const reg=dados.pesos[ex.id];
@@ -554,8 +631,7 @@ function sairDoModoEdicao(){
 }
 function atualizaBotaoConta(){
   const b=document.getElementById('btnConta');
-  document.getElementById('btnEditar').hidden=!usuario;
-  if(!usuario&&editando)sairDoModoEdicao();
+  document.getElementById('btnEditar').hidden=false;
   if(!temConfig()){b.hidden=true;return}
   b.hidden=false;
   if(usuario){
@@ -587,12 +663,12 @@ async function enviarNuvem(){
   try{
     const fb=await getFB();
     await fb.F.setDoc(fb.F.doc(fb.db,'usuarios',usuario.uid),montarDoc(),{merge:true});
-  }catch(e){}
+  }catch(e){mostrarStatus('Não foi possível sincronizar agora. Seus dados permanecem neste dispositivo.')}
 }
 function mesclarNuvem(c){
   if(c.treinos&&typeof c.treinos==='object'){
     ORDEM.forEach(function(t){
-      dados.treinos[t]=Array.isArray(c.treinos[t])?c.treinos[t]:[];
+      if(Array.isArray(c.treinos[t]))dados.treinos[t]=c.treinos[t];
     });
   }
   if(c.progresso){
@@ -615,7 +691,7 @@ function mesclarNuvem(c){
       const meu=dados.pesos[exId];
       if(nu.nome)meu.nome=nu.nome;
       nu.hist.forEach(function(r){
-        if(!r||typeof r.p!=='number')return;
+        if(!r||!r.d||(!Array.isArray(r.ps)&&typeof r.p!=='number'))return;
         const i=meu.hist.findIndex(function(x){return x.d===r.d});
         if(i<0)meu.hist.push(r);
         else if((r.t||0)>=(meu.hist[i].t||0))meu.hist[i]=r;
@@ -633,16 +709,11 @@ async function baixarNuvem(){
       mesclarNuvem(snap.data()||{});
       salvarLocal(); render();
     }else{
-      if(localPuroModelo()){
-        dados.treinos=treinosVazios();
-        dados.progresso={};
-        dados.pesos={};
-        salvarLocal(); render();
-      }
+      // Uma conta nova não deve apagar os treinos existentes no dispositivo.
       enviarNuvem();
     }
     perguntarModelo();
-  }catch(e){}
+  }catch(e){mostrarStatus('Não foi possível baixar os dados da nuvem.')}
 }
 async function iniciarAuth(){
   const fb=await getFB();
@@ -719,6 +790,103 @@ document.getElementById('btnGoogle').onclick=async function(){
       }else throw e;
     }
   }catch(e){erroEl.textContent=msgErro(e)}
+};
+
+document.getElementById('btnExportar').onclick=function(){
+ const backup={formato:'academia-tenda-backup',versao:1,exportadoEm:new Date().toISOString(),dados:dados};
+ const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='academia-tenda-backup-'+hoje()+'.json';document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);mostrarStatus('Backup exportado. Guarde o arquivo em local seguro.');
+};
+document.getElementById('btnImportar').onclick=function(){document.getElementById('arquivoBackup').click()};
+document.getElementById('arquivoBackup').onchange=async function(){
+ const f=this.files&&this.files[0];this.value='';if(!f)return;
+ if(f.size>10*1024*1024){mostrarStatus('Arquivo muito grande (máximo 10 MB).');return}
+ try{
+  const obj=JSON.parse(await f.text());
+  if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!obj.dados.progresso||!obj.dados.pesos||!ORDEM.every(t=>Array.isArray(obj.dados.treinos[t])))throw Error('formato');
+  if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
+  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos};
+  salvar();render();mostrarStatus('Backup importado com sucesso.');
+ }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
+};
+
+// Evolução: gráficos locais sem bibliotecas externas.
+let mesExibido=new Date();mesExibido.setDate(1);
+function mudarVista(v){
+ const evo=v==='evolucao';
+ document.getElementById('viewEvolucao').hidden=!evo;
+ document.getElementById('viewTreinos').hidden=evo;
+ for(const [id,ativo] of [['irTreinos',!evo],['irEvolucao',evo]]){
+  const b=document.getElementById(id);b.classList.toggle('selecionado',ativo);b.setAttribute('aria-pressed',String(ativo));
+ }
+ if(evo)renderEvolucao();
+ window.scrollTo({top:0,behavior:'instant'});
+}
+document.getElementById('irTreinos').onclick=()=>mudarVista('treinos');
+document.getElementById('irEvolucao').onclick=()=>mudarVista('evolucao');
+document.getElementById('mesAnterior').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()-1);renderCalendario()};
+document.getElementById('mesSeguinte').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()+1);renderCalendario()};
+function dataISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function diasComTreino(){return Object.keys(dados.progresso||{}).filter(d=>Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length))}
+function renderCalendario(){
+ const y=mesExibido.getFullYear(),m=mesExibido.getMonth(),grid=document.getElementById('calendario');
+ document.getElementById('mesTitulo').textContent=mesExibido.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+ grid.replaceChildren();const dias=['S','T','Q','Q','S','S','D'];
+ dias.forEach(d=>{const e=document.createElement('div');e.className='cal-day head';e.textContent=d;grid.appendChild(e)});
+ const inicio=(new Date(y,m,1).getDay()+6)%7,quant=new Date(y,m+1,0).getDate(),ativos=new Set(diasComTreino());
+ for(let i=0;i<inicio;i++){const e=document.createElement('div');e.className='cal-day empty';grid.appendChild(e)}
+ for(let dia=1;dia<=quant;dia++){
+  const d=dataISO(new Date(y,m,dia)),e=document.createElement('div');e.className='cal-day'+(ativos.has(d)?' active':'')+(d===hoje()?' today':'');e.textContent=dia;
+  e.title=d+(ativos.has(d)?' — atividade registrada':'');grid.appendChild(e);
+ }
+}
+function historicosDisponiveis(){
+ const res=[];const ids=new Set();
+ ORDEM.forEach(t=>(dados.treinos[t]||[]).forEach(ex=>{
+  if(ids.has(ex.id))return;ids.add(ex.id);
+  const reg=dados.pesos[ex.id];if(reg&&Array.isArray(reg.hist)&&reg.hist.length)res.push({id:ex.id,nome:ex.nome,reg});
+ }));return res;
+}
+function renderGrafico(){
+ const sel=document.getElementById('selecionarExercicio'),box=document.getElementById('graficoCargas'),lista=historicosDisponiveis();
+ const anterior=sel.value;sel.replaceChildren();
+ if(!lista.length){box.textContent='Registre cargas nos treinos para visualizar o gráfico.';return}
+ lista.forEach(ex=>{const o=document.createElement('option');o.value=ex.id;o.textContent=ex.nome;sel.appendChild(o)});
+ if(lista.some(ex=>ex.id===anterior))sel.value=anterior;
+ const ex=lista.find(ex=>ex.id===sel.value)||lista[0];
+ const h=ex.reg.hist.filter(r=>r&&r.d&&Number.isFinite(maxRegistro(r))).sort((a,b)=>a.d.localeCompare(b.d)).slice(-12);
+ if(!h.length){box.textContent='Nenhum registro disponível.';return}
+ const W=340,H=190,left=34,right=12,top=16,bottom=33;
+ const vals=h.map(maxRegistro),min=Math.min(0,...vals),max=Math.max(1,...vals),rng=max-min;
+ const px=i=>left+(h.length===1?(W-left-right)/2:i*(W-left-right)/(h.length-1));
+ const py=v=>top+(max-v)/rng*(H-top-bottom);
+ const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');svg.setAttribute('aria-label','Evolução de carga de '+ex.nome);
+ function el(tag,attrs,txt){const n=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!=null)n.textContent=txt;svg.appendChild(n);return n}
+ for(let i=0;i<4;i++){const v=min+rng*i/3,y=py(v);el('line',{x1:left,y1:y,x2:W-right,y2:y,stroke:'#334155','stroke-dasharray':'3 4'});el('text',{x:3,y:y+4,fill:'#94a3b8','font-size':10},fmtNum(v))}
+ el('polyline',{points:h.map((r,i)=>`${px(i)},${py(vals[i])}`).join(' '),fill:'none',stroke:'#4ade80','stroke-width':2.5,'stroke-linejoin':'round'});
+ h.forEach((r,i)=>{const c=el('circle',{cx:px(i),cy:py(vals[i]),r:4,fill:'#4ade80'});const title=document.createElementNS(NS,'title');title.textContent=r.d+': '+fmtPeso(vals[i]);c.appendChild(title)});
+ [0,h.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>el('text',{x:px(i),y:H-10,fill:'#94a3b8','font-size':11,'text-anchor':'middle'},fmtData(h[i].d)));
+ box.replaceChildren(svg);
+}
+document.getElementById('selecionarExercicio').onchange=renderGrafico;
+function renderEvolucao(){
+ renderCalendario();renderGrafico();
+ const dias=diasComTreino(),hojeN=hoje(),mes=hojeN.slice(0,7);
+ const itens=[['Dias com atividade registrada',dias.length],['Dias com atividade neste mês',dias.filter(d=>d.startsWith(mes)).length],['Exercícios com histórico de cargas',historicosDisponiveis().length],['Último dia registrado',dias.length?fmtData(dias.slice().sort().at(-1)):'Nenhum']];
+ const box=document.getElementById('resumoEvolucao');box.replaceChildren();
+ itens.forEach(([k,v])=>{const r=document.createElement('div');r.className='mini-stat';const a=document.createElement('span'),b=document.createElement('b');a.textContent=k;b.textContent=v;r.append(a,b);box.appendChild(r)});
+}
+document.getElementById('exportarCSV').onclick=function(){
+ const rows=[['Exercício','Data','Série','Carga (kg)']];
+ historicosDisponiveis().forEach(ex=>ex.reg.hist.forEach(r=>{
+  const ps=pesosDoRegistro(r);ps.forEach((v,i)=>{if(v!=null)rows.push([ex.nome,r.d,i+1,v])});
+ }));
+ const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+ a.href=url;a.download='academia-tenda-cargas-'+hoje()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 
 let promptInstalar=null;
