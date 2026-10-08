@@ -172,6 +172,7 @@ h1{letter-spacing:-.7px;font-size:21px}h1 span{color:var(--accent)}
 
 #btnNoite{width:42px;padding:0;justify-content:center;flex-shrink:0}
 #btnConcluir{width:calc(100% - 48px);margin:6px 24px 0;padding:14px 0;font-size:15px;justify-content:center}
+body.editando #btnConcluir{display:none}
 /* Modo noturno */
 body.noite{background:#0f172a;color:#e2e8f0}
 body.noite header{background:rgba(15,23,42,.96);border-bottom-color:#1e293b}
@@ -282,10 +283,10 @@ body.noite #statusDados{color:#94a3b8}
   <div class="barra"><div id="barraFill"></div></div>
   <div class="ptxt"><span id="progTexto">0/0 (0%)</span><span id="dataTexto"></span></div>
 </section>
-<button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <div class="cardio">Atividade complementar: <b>personalize conforme sua rotina</b> — bike, caminhada ou elíptico</div>
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
+<button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
 <button class="btn" id="btnModelo">Carregar modelo (A–E)</button>
 <div class="rodape"><button class="btn warn" id="btnLimpar">Limpar marcações de hoje</button></div>
