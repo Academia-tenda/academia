@@ -280,7 +280,7 @@ body.noite .busca-ex{background:#0f172a;color:#94a3b8}
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
-<div id="statusSalvamento" role="status" aria-live="polite" style="padding:12px 24px;text-align:center;font-size:12px"></div><div style="text-align:center"><button class="btn acc" id="btnSincronizar" type="button" hidden>Sincronizar</button></div>
+<div style="text-align:center;padding:10px 24px 0"><button class="btn acc" id="btnSincronizar" type="button" hidden>Sincronizar</button></div>
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
@@ -486,7 +486,7 @@ document.getElementById('buscaQuery').addEventListener('keydown',function(e){if(
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 let localSalvo=true, syncPronto=false, syncOcupado=false, baseNuvem=null, alteracao=0, sincronizado=-1;
-function statusSalvar(msg){document.getElementById('statusSalvamento').textContent=msg}
+function statusSalvar(msg){const d=document.getElementById('statusDados');if(d)d.textContent=msg}
 function migrarConclusoes(j){
  j.progresso=j.progresso||{};
  for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of ORDEM){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
