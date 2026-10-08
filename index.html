@@ -61,6 +61,14 @@ body.editando .edicao{display:flex}
 .edicao .nomei{width:100%}
 .edicao .s{width:54px}
 .edicao .r{width:78px}
+.thumb{width:48px;height:48px;min-width:48px;border-radius:10px;overflow:hidden;border:1px solid #334155;background:#0f172a;padding:0;cursor:pointer}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+body.editando .thumb{display:none}
+.foto{background:none;border:1px solid #334155;color:#cbd5e1;border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;align-self:flex-end;font-family:inherit}
+.delFoto{border-color:#7f1d1d;color:#f87171}
+#modalImg .caixa{max-width:540px;width:min(92vw,540px)}
+#imgGrande{max-width:100%;max-height:64vh;border-radius:12px;display:block;margin:0 auto 12px}
+#imgLegenda{text-align:center;font-size:12px;margin-bottom:10px}
 .del{background:none;border:1px solid #7f1d1d;color:#f87171;border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;align-self:flex-end;font-family:inherit}
 .vazio{padding:30px 16px;text-align:center;color:#64748b;background:#1e293b;border:1px dashed #334155;border-radius:14px;font-size:14px;line-height:1.6}
 #btnAdicionar{display:none;width:calc(100% - 32px);margin:12px 16px 0;padding:13px 0;font-size:15px;justify-content:center}
@@ -159,6 +167,14 @@ body.editando #btnModelo{display:block}
   </div>
 </div>
 
+<div class="overlay" id="modalImg" hidden>
+  <div class="caixa">
+    <img id="imgGrande" alt="">
+    <div class="muted" id="imgLegenda"></div>
+    <button class="btn" id="btnFecharImg">Fechar</button>
+  </div>
+</div>
+
 <script src="firebase-config.js"></script>
 <script>
 const CHAVE='academia_v3';
@@ -171,6 +187,40 @@ C:[['Leg Press 45 graus','5','12'],['Cadeira extensora','5','12'],['Cadeira flex
 D:[['Rosca direta com barra W','4','15'],['Rosca Scott','4','15'],['Rosca alternada (mais peso)','3','8'],['Tríceps na polia','4','15'],['Tríceps testa com barra','4','15'],['Tríceps francês (mais peso)','3','8'],['Rosca punho','4','15']],
 E:[['Supino reto com barra','4','12'],['Elevação lateral','5','12'],['Puxada alta','4','12'],['Cadeira extensora','4','12'],['Cadeira flexora','4','12'],['Panturrilha em pé','5','15'],['Abdominal curto','4','25'],['Abdominal inferior','4','25'],['Abdominal remador','4','25']]
 };
+const IMGS={
+ 'Peck deck':'peckdeck','Supino com halteres':'supino_halteres','Supino inclinado com barra':'supino_inclinado_barra','Flexão no chão':'flexao_chao','Desenvolvimento militar':'desenvolvimento_militar','Elevação lateral':'elevacao_lateral','Elevação frontal':'elevacao_frontal',
+ 'Barra fixa':'barra_fixa','Puxada alta':'puxada_alta','Remada baixa':'remada_baixa','Remada unilateral (mais peso)':'remada_unilateral','Encolhimento':'encolhimento','Elevação posterior':'elevacao_posterior','Abdominal curto (com peso)':'abdc_curto',
+ 'Leg Press 45 graus':'legpress','Cadeira extensora':'cadeira_extensora','Cadeira flexora':'cadeira_flexora','Cadeira abdutora':'cadeira_abdutora','Panturrilha em pé':'panturrilha_pe',
+ 'Rosca direta com barra W':'rosca_w','Rosca Scott':'rosca_scott','Rosca alternada (mais peso)':'rosca_alternada','Tríceps na polia':'triceps_polia','Tríceps testa com barra':'triceps_testa','Tríceps francês (mais peso)':'triceps_frances','Rosca punho':'rosca_punho',
+ 'Supino reto com barra':'supino_reto_barra','Abdominal curto':'abdc_curto','Abdominal inferior':'abdc_inferior','Abdominal remador':'abdc_remador'
+};
+function novoItem(nome,series,reps){return{id:id(),nome:nome,series:series,reps:reps,img:IMGS[nome]?('img/'+IMGS[nome]):''}}
+function imgDe(ex){if(ex.img)return ex.img;return IMGS[ex.nome]?('img/'+IMGS[ex.nome]):''}
+function fotoPropria(ex){return typeof ex.img==='string'&&ex.img.indexOf('data:')===0}
+function carregarFoto(ex,inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){
+    const max=360;let w=img.width||max,h=img.height||max;
+    if(w>h&&w>max){h=Math.round(h*max/w);w=max}else if(h>max){w=Math.round(w*max/h);h=max}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    ex.img=c.toDataURL('image/jpeg',0.72);
+    URL.revokeObjectURL(url);
+    salvar();render();
+  };
+  img.onerror=function(){URL.revokeObjectURL(url)};
+  img.src=url;inp.value='';
+}
+function abrirImagem(ex){
+  const src=imgDe(ex);if(!src)return;
+  document.getElementById('imgGrande').src=src;
+  document.getElementById('imgGrande').alt=ex.nome;
+  document.getElementById('imgLegenda').textContent=ex.nome;
+  document.getElementById('modalImg').hidden=false;
+}
+document.getElementById('btnFecharImg').onclick=function(){document.getElementById('modalImg').hidden=true};
+document.getElementById('modalImg').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 let dados, treinoAtual='A', editando=false, focarNovo=false;
 let usuario=null, FB=null, modoCadastro=false, envioTimer=null;
 
@@ -212,7 +262,7 @@ function salvarSerie(ex,idx,bruto){
 }
 function temConfig(){return !!(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey)}
 function treinosVazios(){const o={};ORDEM.forEach(function(t){o[t]=[]});return o}
-function novoModelo(){const o={};ORDEM.forEach(function(t){o[t]=PADRAO[t].map(function(e){return{id:id(),nome:e[0],series:e[1],reps:e[2]}})});return o}
+function novoModelo(){const o={};ORDEM.forEach(function(t){o[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])})});return o}
 function treinosVaziosCompletos(){return ORDEM.every(function(t){const a=dados.treinos[t];return !a||!a.length})}
 const JAPERG='modelo_ja_perguntado';
 function perguntarModelo(){
@@ -245,7 +295,7 @@ function carregar(){
   }
   if(!j||!j.treinos)j={treinos:{},progresso:{}};
   ORDEM.forEach(function(t){
-    if(!Array.isArray(j.treinos[t]))j.treinos[t]=PADRAO[t].map(function(e){return{id:id(),nome:e[0],series:e[1],reps:e[2]}});
+    if(!Array.isArray(j.treinos[t]))j.treinos[t]=PADRAO[t].map(function(e){return novoItem(e[0],e[1],e[2])});
   });
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
@@ -336,6 +386,22 @@ function render(){
     const ed=document.createElement('div');
     ed.className='edicao';
     ed.innerHTML='<div class="linha1"><input class="nomei" placeholder="Nome do exercício"><input class="s" placeholder="Séries" inputmode="numeric"><input class="r" placeholder="Repetições"></div><button class="del">Remover</button>';
+    const inpFoto=document.createElement('input');
+    inpFoto.type='file'; inpFoto.accept='image/*'; inpFoto.style.display='none';
+    const btnFoto=document.createElement('button');
+    btnFoto.type='button'; btnFoto.className='foto';
+    btnFoto.textContent=fotoPropria(ex)?'Trocar foto':'Foto';
+    btnFoto.setAttribute('aria-label','Adicionar foto de '+ex.nome);
+    btnFoto.onclick=function(){inpFoto.click()};
+    inpFoto.onchange=function(){carregarFoto(ex,inpFoto)};
+    ed.appendChild(inpFoto); ed.appendChild(btnFoto);
+    if(fotoPropria(ex)){
+      const bp=document.createElement('button');
+      bp.type='button'; bp.className='foto delFoto';
+      bp.textContent='Remover foto';
+      bp.onclick=function(){delete ex.img;salvar();render()};
+      ed.appendChild(bp);
+    }
     const inNome=ed.querySelector('.nomei'), inS=ed.querySelector('.s'), inR=ed.querySelector('.r');
     inNome.value=ex.nome; inS.value=ex.series; inR.value=ex.reps;
     inNome.oninput=function(){ex.nome=inNome.value;salvar()};
@@ -348,7 +414,19 @@ function render(){
       delete dados.pesos[ex.id];
       salvar(); render();
     };
-    li.appendChild(chk); li.appendChild(info); li.appendChild(sp); li.appendChild(ed);
+    li.appendChild(chk);
+    if(imgDe(ex)){
+      const tb=document.createElement('button');
+      tb.className='thumb'; tb.type='button';
+      tb.setAttribute('aria-label','Ver foto de '+ex.nome);
+      const ti=document.createElement('img');
+      ti.src=imgDe(ex); ti.alt=ex.nome;
+      ti.loading='lazy';
+      tb.appendChild(ti);
+      tb.onclick=function(){abrirImagem(ex)};
+      li.appendChild(tb);
+    }
+    li.appendChild(info); li.appendChild(sp); li.appendChild(ed);
     lista.appendChild(li);
     if(editando&&focarNovo&&ex===arr[arr.length-1])setTimeout(function(){inNome.focus()},0);
   });
