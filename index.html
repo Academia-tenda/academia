@@ -429,7 +429,10 @@ function render(){
       tb.setAttribute('aria-label','Ver foto de '+ex.nome);
       const ti=document.createElement('img');
       ti.src=imgDe(ex); ti.alt=ex.nome;
-      ti.loading='lazy';
+      ti.onerror=function(){
+        ti.src=imgDe(ex)+'?v=1';
+        ti.onerror=function(){tb.hidden=true};
+      };
       tb.appendChild(ti);
       tb.onclick=function(){abrirImagem(ex)};
       li.appendChild(tb);
