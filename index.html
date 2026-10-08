@@ -607,6 +607,13 @@ return BASE.every(function(t){
     return PADRAO[t].every(function(e,i){return a[i]&&a[i].nome===e[0]&&a[i].series===e[1]&&a[i].reps===e[2]});
   });
 }
+function ehPadrao(){
+  return BASE.every(function(t){
+    const a=dados.treinos[t];
+    if(!Array.isArray(a)||a.length!==PADRAO[t].length)return false;
+    return PADRAO[t].every(function(e,i){return a[i]&&a[i].nome===e[0]&&a[i].series===e[1]&&a[i].reps===e[2]});
+  });
+}
 
 function carregar(){
   let j=null;
