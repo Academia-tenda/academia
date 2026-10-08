@@ -1315,9 +1315,12 @@ async function iniciarAuth(){
       render();
       baixarNuvem();
       garantirPerfil();
-  }elsedocument.getElementById('btnConta').onclick=function(){
-  if(usuario){abrirPerfil()}else{abrirLogin()}
-};
+    }else{
+      ultimoUid=null;
+      const tinha=!!dados&&temConteudo(dados);
+      limparDadosNavegador();
+      if(tinha)statusSalvar('Você saiu da conta: este navegador foi esvaziado. Entre na sua conta para recuperar seus dados.');
+    }
   });
 }
 document.getElementById('btnConta').onclick=function(){
@@ -1580,4 +1583,5 @@ if(temConfig()){
 </script>
 </body>
 </html>
+
 
