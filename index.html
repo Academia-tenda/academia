@@ -989,6 +989,9 @@ function sairDoModoEdicao(){
   document.body.classList.remove('editando');
   document.getElementById('btnEditar').textContent='Editar';
 }
+document.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
 function atualizaBotaoConta(){
   const b=document.getElementById('btnConta');
   document.getElementById('btnEditar').hidden=false;
@@ -1601,6 +1604,7 @@ if(temConfig()){
 </script>
 </body>
 </html>
+
 
 
 
