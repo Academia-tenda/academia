@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1315,12 +1315,9 @@ async function iniciarAuth(){
       render();
       baixarNuvem();
       garantirPerfil();
-  }else{
-      ultimoUid=null;
-      const tinha=!!dados&&temConteudo(dados);
-     limparDadosNavegador();
-     if(tinha)statusSalvar('Você saiu da conta: este navegador foi esvaziado. Entre na sua conta para recuperar seus dados.');
-    }
+  }elsedocument.getElementById('btnConta').onclick=function(){
+  if(usuario){abrirPerfil()}else{abrirLogin()}
+};
   });
 }
 document.getElementById('btnConta').onclick=function(){
@@ -1583,3 +1580,4 @@ if(temConfig()){
 </script>
 </body>
 </html>
+
