@@ -1033,8 +1033,20 @@ document.getElementById('btnFecharPerfil').onclick=function(){document.getElemen
 document.getElementById('modalPerfil').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 document.getElementById('btnSair').onclick=async function(){
   document.getElementById('modalPerfil').hidden=true;
+  const tinhaDados=!!usuario&&temConteudo(dados);
+  statusSalvar('Guardando seus dados na conta...');
+  let enviado=false;
+  if(tinhaDados){
+   try{await enviarNuvem(true);enviado=true}catch(e){}
+  }
   try{const fb=await getFB();await fb.U.signOut(fb.auth)}catch(e){}
-  usuario=null; atualizaBotaoConta();
+  localStorage.removeItem(CHAVE);
+  localStorage.removeItem('academia_v2');
+  localStorage.removeItem(CHAVE+'_antes_sincronizar');
+  dados=carregar();
+  atualizarOrdem();garantirTreinoAtual();treinoAtual=ORDEM[0];
+  alteracao++;salvarLocal();render();atualizaBotaoConta();
+  statusSalvar(tinhaDados&&!enviado?'Seus dados foram apagados deste navegador, mas NÃO foi possível salvá-los na conta. Entre novamente e toque em Sincronizar antes de sair.':'Este navegador foi esvaziado. Seus dados continuam guardados na sua conta.');
 };
 document.getElementById('btnSemConta').onclick=function(){document.getElementById('modalLogin').hidden=true};
 document.getElementById('modalLogin').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
