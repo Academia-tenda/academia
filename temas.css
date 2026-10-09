@@ -1,6 +1,6 @@
 /* Tenda: shared application design system. */
-body{--fundo:#f5f4ef;--superficie:#fffefa;--campo:#eeeee7;--texto:#263129;--secundario:#667165;--linha:#dfe3d9;--acento:#985025;--suave:#f2e7da;--ativo:#364b3b;--ativo-texto:#fffefa;--erro:#a53d35;--sombra:0 4px 20px #26312906}
-body.noite{--fundo:#151d19;--superficie:#1f2a23;--campo:#17211b;--texto:#f0f2eb;--secundario:#a6b3a8;--linha:#344238;--acento:#eda676;--suave:#352c22;--ativo:#d9e4d5;--ativo-texto:#1b281f;--erro:#f0a19a;--sombra:none}
+body{--fundo:#f5f5f5;--superficie:#ffffff;--campo:#ececee;--texto:#232326;--secundario:#6c6c74;--linha:#dedee2;--acento:#b64b21;--suave:#f9e9df;--ativo:#b64b21;--ativo-texto:#ffffff;--erro:#a53d35;--sombra:0 4px 20px #23232606}
+body.noite{--fundo:#141416;--superficie:#202023;--campo:#18181b;--texto:#f4f4f5;--secundario:#aaaab2;--linha:#37373d;--acento:#f1986b;--suave:#35261f;--ativo:#f1986b;--ativo-texto:#21150f;--erro:#f0a19a;--sombra:none}
 :is(body,body.noite){max-width:1120px!important;background:var(--fundo);color:var(--texto);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.5;padding-bottom:110px}
 [hidden]{display:none!important}
 :is(body,body.noite) header{padding:20px 32px;background:var(--fundo);border-bottom:1px solid var(--linha);gap:16px}
@@ -20,13 +20,13 @@ body.noite{--fundo:#151d19;--superficie:#1f2a23;--campo:#17211b;--texto:#f0f2eb;
 :is(body,body.noite) .welcome h2 em{font:inherit}
 :is(body,body.noite) .welcome p,:is(body,body.noite) .small-note,:is(body,body.noite) .muted{font-size:13px;line-height:1.6;color:var(--secundario)}
 :is(body,body.noite) .eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:700;color:var(--secundario)}
-:is(body,body.noite) .inicio-vazio{margin:0 32px 32px;max-width:none;padding:48px;border:0;border-radius:16px;text-align:left;background:#364b3b;color:#fffefa;box-shadow:none;position:relative;overflow:hidden}
+:is(body,body.noite) .inicio-vazio{margin:0 32px 32px;max-width:none;padding:48px;border:0;border-radius:16px;text-align:left;background:#b64b21;color:#ffffff;box-shadow:none;position:relative;overflow:hidden}
 :is(body,body.noite) .inicio-arte{display:none}
-:is(body,body.noite) .inicio-vazio h2{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:44px;line-height:1.15;font-weight:400;letter-spacing:-1px;max-width:520px;color:#fffefa;margin:0 0 16px;text-wrap:balance}
-:is(body,body.noite) .inicio-vazio p{max-width:430px;color:#dbe3d6;font-size:15px;line-height:1.7;margin:0 0 28px}
-:is(body,body.noite) .inicio-vazio .btn{width:auto;max-width:none;margin:0 0 12px;padding:14px 24px;min-height:48px;background:#fffefa;color:#293d2e;border:0}
-:is(body,body.noite) .inicio-vazio .link{width:auto;padding:8px 0;margin:0;color:#fffefa;text-align:left;font-size:13px}
-:is(body,body.noite) .inicio-vazio .link.fraco{color:#c7d2c4}
+:is(body,body.noite) .inicio-vazio h2{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:44px;line-height:1.15;font-weight:400;letter-spacing:-1px;max-width:520px;color:#ffffff;margin:0 0 16px;text-wrap:balance}
+:is(body,body.noite) .inicio-vazio p{max-width:430px;color:#dddde2;font-size:15px;line-height:1.7;margin:0 0 28px}
+:is(body,body.noite) .inicio-vazio .btn{width:auto;max-width:none;margin:0 0 12px;padding:14px 24px;min-height:48px;background:#ffffff;color:#27272b;border:0}
+:is(body,body.noite) .inicio-vazio .link{width:auto;padding:8px 0;margin:0;color:#ffffff;text-align:left;font-size:13px}
+:is(body,body.noite) .inicio-vazio .link.fraco{color:#ccccd2}
 :is(body,body.noite) .week-card{margin:0 32px 24px;background:var(--superficie);border:1px solid var(--linha);border-radius:14px;padding:20px 24px;box-shadow:var(--sombra)}
 :is(body,body.noite) .week-top strong{font-size:15px;font-weight:650;color:var(--texto)}
 :is(body,body.noite) .week-top span,:is(body,body.noite) .week-day{color:var(--secundario)}
@@ -263,13 +263,13 @@ body.aluno-com-treinos .welcome{display:none!important}
 :is(body,body.noite) .aluno-boasvindas h2{font-size:34px;line-height:1.13;letter-spacing:-1px;font-weight:650;margin:16px 0;max-width:360px;text-wrap:balance}
 :is(body,body.noite) .aluno-boasvindas p{color:var(--secundario);font-size:13px;line-height:1.7;max-width:360px;margin-bottom:24px}
 :is(body,body.noite) .aluno-boasvindas .btn{background:transparent;border-color:var(--linha);font-size:12px}
-:is(body,body.noite) .aluno-resumo-visual{position:relative;min-height:290px;background:#26382c}
+:is(body,body.noite) .aluno-resumo-visual{position:relative;min-height:290px;background:#242428}
 :is(body,body.noite) .aluno-resumo-visual>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;filter:brightness(.7) saturate(.65)}
-:is(body,body.noite) .aluno-semana-mini{position:absolute;bottom:24px;left:24px;right:24px;padding:18px;background:#19271ed9;border:1px solid #ffffff26;border-radius:12px;backdrop-filter:blur(8px);color:#fff}
+:is(body,body.noite) .aluno-semana-mini{position:absolute;bottom:24px;left:24px;right:24px;padding:18px;background:#18181be8;border:1px solid #ffffff26;border-radius:12px;backdrop-filter:blur(8px);color:#fff}
 :is(body,body.noite) .mini-semana-titulo{font-size:9px;letter-spacing:1.6px}
 :is(body,body.noite) .mini-semana-dias{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
-:is(body,body.noite) .mini-semana-dias>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff14;font-size:11px;color:#d9e4d5}
-:is(body,body.noite) .mini-semana-dias>span.ativo{background:#d9e4d5;color:#26382c}
+:is(body,body.noite) .mini-semana-dias>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff14;font-size:11px;color:#f1986b}
+:is(body,body.noite) .mini-semana-dias>span.ativo{background:#f1986b;color:#242428}
 :is(body,body.noite) .biblioteca-cabecalho{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:36px 32px 20px}
 :is(body,body.noite) .biblioteca-cabecalho h2{font-size:22px;font-weight:650;letter-spacing:-.5px;margin:0 0 6px}
 :is(body,body.noite) .biblioteca-cabecalho p{margin:0;color:var(--secundario);font-size:12px}
