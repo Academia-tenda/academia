@@ -8,7 +8,7 @@ const iphone=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Mac/.test(navig
 function atualizar(){const b=$('btnInstalar');if(b)b.hidden=standalone()}
 function fechar(){$('modalInstalar').hidden=true;$('btnInstalar').focus()}
 function guia(){const ios=iphone();$('instalarTitulo').textContent=ios?'Instalar no iPhone ou iPad':'Instalar Academia Tenda';$('instalarIos').hidden=!ios;$('instalarOutros').hidden=ios;$('modalInstalar').hidden=false;$('fecharInstalar').focus()}
-async function instalar(){if(standalone())return;if(!convite){guia();return}const atual=convite;convite=null;try{await atual.prompt();const escolha=await atual.userChoice;if(escolha.outcome==='accepted')instalado=true}catch(e){guia()}atualizar()}
+async function instalar(){if(standalone()){atualizar();return}guia();if(!convite)return;const atual=convite;convite=null;try{await atual.prompt();const escolha=await atual.userChoice;if(escolha.outcome==='accepted'){instalado=true;$('modalInstalar').hidden=true}}catch(e){guia()}atualizar()}
 window.TendaPwa={atualizar};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();convite=e;atualizar()});
 window.addEventListener('appinstalled',()=>{convite=null;instalado=true;atualizar();$('modalInstalar').hidden=true});
