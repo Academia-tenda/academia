@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-let convite=null,instalado=false,registration=null,recarregando=false;
+let convite=null,instalado=false,registration=null,recarregando=false,atualizacaoSolicitada=false;
 const standalone=()=>instalado||window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const iphone=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Mac/.test(navigator.platform)&&navigator.maxTouchPoints>1);
 function atualizar(){const b=$('btnInstalar');if(b)b.hidden=standalone()}
@@ -15,13 +15,21 @@ window.addEventListener('appinstalled',()=>{convite=null;instalado=true;atualiza
 $('btnInstalar').onclick=instalar;$('fecharInstalar').onclick=fechar;
 $('modalInstalar').addEventListener('click',e=>{if(e.target===$('modalInstalar'))fechar()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modalInstalar').hidden)fechar()});
-function aviso(){if(registration&&registration.waiting)$('pwaAtualizacao').hidden=false}
+function aviso(){
+ const waiting=registration&&registration.waiting;
+ $('pwaAtualizacao').hidden=true;
+ if(!waiting||atualizacaoSolicitada)return;
+ if(window.tendaAtualizacaoSegura&&window.tendaAtualizacaoSegura()){
+  atualizacaoSolicitada=true;waiting.postMessage({type:'SKIP_WAITING'});return;
+ }
+ $('pwaAtualizacao').hidden=!(window.tendaTemContaAtiva&&window.tendaTemContaAtiva());
+}
 $('pwaAtualizar').onclick=async function(){const b=$('pwaAtualizar');b.disabled=true;try{if(window.tendaPodeAtualizar&&!await window.tendaPodeAtualizar())return;if(registration&&registration.waiting)registration.waiting.postMessage({type:'SKIP_WAITING'})}finally{b.disabled=false}};
 if('serviceWorker' in navigator){
  const tinhaController=!!navigator.serviceWorker.controller;
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!tinhaController||recarregando)return;recarregando=true;location.reload()});
  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
-  registration=reg;aviso();reg.addEventListener('updatefound',()=>{const sw=reg.installing;if(sw)sw.addEventListener('statechange',()=>{if(sw.state==='installed')aviso()})});
+  registration=reg;aviso();setInterval(aviso,15000);reg.addEventListener('updatefound',()=>{const sw=reg.installing;if(sw)sw.addEventListener('statechange',()=>{if(sw.state==='installed')aviso()})});
   reg.update().catch(()=>{});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){reg.update().catch(()=>{});aviso()}});
  }).catch(()=>{});
