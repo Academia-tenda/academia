@@ -1179,7 +1179,8 @@ async function baixarNuvem(){
  try{const fb=await getFB(),s=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',uid));if(!usuario||usuario.uid!==uid)return;
   const remote=s.exists()?migrarConclusoes(JSON.parse(JSON.stringify(s.data()))):null;
   if(remote){if(!remote.treinos||!Object.values(remote.treinos).every(Array.isArray))throw Error('Dados inválidos');
-   if((!temConteudo(dados)&&!Object.keys((dados.medidas||{}).pesos||{}).length&&!dados.medidas?.altura)||ehPadrao())aplicarSync(remote);
+   let baseSalva=syncBase;try{if(!baseSalva)baseSalva=JSON.parse(localStorage.getItem(CHAVE+'_base_'+uid)||'null')}catch(e){}
+   if(!baseSalva&&((!temConteudo(dados)&&!Object.keys((dados.medidas||{}).pesos||{}).length&&!dados.medidas?.altura)||ehPadrao()))aplicarSync(remote);
    else if(assinatura(remote)!==assinatura(dados)){
     let base=syncBase;try{if(!base)base=JSON.parse(localStorage.getItem(CHAVE+'_base_'+uid)||'null')}catch(e){}
     if(!base){conflitoSync(remote);return}
