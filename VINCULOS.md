@@ -2,6 +2,8 @@
 
 A interface de treinos, as datas e as versões dos planos funcionam com as permissões atuais. O acompanhamento por convite é ativado separadamente.
 
+As regras foram publicadas no Firebase do projeto `academia-tenda` em 9 de outubro de 2026. O arquivo `firestore.rules` corresponde às regras em produção. A ativação das carteiras pelo responsável ainda é necessária.
+
 1. Entre no projeto correto no Firebase Console.
 2. Guarde uma cópia das regras atualmente publicadas.
 3. Em Firestore Database → Regras, publique o conteúdo de `firestore-vinculos.rules`.
@@ -20,4 +22,4 @@ As novas regras impedem que uma conta se promova sozinha a professor. A liberaç
 
 A implementação foi verificada no emulador do Firestore: aceitação atômica, consulta limitada, publicação, revogação, preservação de dados e bloqueio de promoção indevida. Também foram testados os fluxos da interface e a mesclagem dos dados.
 
-Essa verificação não substitui um teste final com duas contas no projeto real. Não foram criadas contas nem alteradas regras ou cobranças no Firebase de produção.
+Essa verificação não substitui um teste final com duas contas no projeto real. As regras foram publicadas em produção; não foram criadas contas nem alteradas cobranças.

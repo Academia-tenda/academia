@@ -1,48 +1,109 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isDono(uid) {
-      return exists(/databases/$(database)/documents/perfis/_adm) && get(/databases/$(database)/documents/perfis/_adm).data.dono == uid;
+    function signed() { return request.auth != null; }
+    function owner() {
+      return signed() && exists(/databases/$(database)/documents/perfis/_adm)
+        && get(/databases/$(database)/documents/perfis/_adm).data.dono == request.auth.uid;
     }
-    function isProf(uid) {
-      return isDono(uid) || (exists(/databases/$(database)/documents/perfis/$(uid)) && get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['professor', 'dono']);
+    function professional() {
+      return signed() && (owner() || (exists(/databases/$(database)/documents/perfis/$(request.auth.uid))
+        && get(/databases/$(database)/documents/perfis/$(request.auth.uid)).data.role == 'professor'));
     }
-
+    function linksEnabled() {
+      return exists(/databases/$(database)/documents/config/vinculos)
+        && get(/databases/$(database)/documents/config/vinculos).data.ativo == true;
+    }
+    function linked(uid) {
+      return exists(/databases/$(database)/documents/vinculos/$(uid))
+        && get(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == true
+        && get(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == request.auth.uid;
+    }
+    function canCoach(uid) {
+      return owner() || (professional() && (!linksEnabled() || linked(uid)));
+    }
+    function profileLinkValid(uid) {
+      let desired = request.resource.data.get('professorUid', '');
+      return desired == resource.data.get('professorUid', '')
+        || (desired == '' && (!existsAfter(/databases/$(database)/documents/vinculos/$(uid))
+          || getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == false))
+        || (existsAfter(/databases/$(database)/documents/vinculos/$(uid))
+          && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == true
+          && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == desired);
+    }
+    match /config/vinculos {
+      allow get: if signed();
+      allow create, update: if owner()
+        && request.resource.data.keys().hasOnly(['ativo', 'ativadoPor', 'ativadoEm'])
+        && request.resource.data.ativo == true
+        && request.resource.data.ativadoPor == request.auth.uid;
+    }
     match /perfis/_adm {
-      allow create: if request.auth != null
-        && !exists(/databases/$(database)/documents/perfis/_adm)
-        && request.resource.data.dono == request.auth.uid;
-      allow read, update, delete: if isDono(request.auth.uid);
+      // O responsável existente é preservado. Cadastro inicial é administrativo.
+      allow get: if owner();
+      allow update: if owner() && request.resource.data.dono == resource.data.dono;
     }
-
     match /perfis/{uid} {
-      allow create: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null
-        && (request.auth.uid == uid || isProf(request.auth.uid));
-      allow list: if request.auth != null && isProf(request.auth.uid);
-      allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.role in ['aluno', 'pendente']
-        && get(/databases/$(database)/documents/perfis/$(uid)).data.role in ['aluno', 'pendente'];
-      allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.role == 'dono'
-        && isDono(request.auth.uid);
-      allow update: if isProf(request.auth.uid);
+      allow create: if signed() && request.auth.uid == uid && uid != '_adm'
+        && request.resource.data.uid == uid && request.resource.data.role == 'aluno'
+        && !request.resource.data.keys().hasAny(['professorUid']);
+      allow get: if signed() && (request.auth.uid == uid || canCoach(uid));
+      allow list: if professional() && (owner() || !linksEnabled()
+        || resource.data.get('professorUid', '') == request.auth.uid);
+      allow update: if signed() && request.auth.uid == uid && uid != '_adm'
+        && request.resource.data.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'email', 'role', 'professorUid'])
+        && (request.resource.data.role == resource.data.role
+          || (resource.data.role in ['aluno', 'pendente'] && request.resource.data.role in ['aluno', 'pendente']))
+        && profileLinkValid(uid);
+      allow update: if owner() && uid != '_adm'
+        && request.resource.data.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'email', 'role'])
+        && request.resource.data.role in ['aluno', 'pendente', 'professor', 'dono']
+        && (request.resource.data.role != 'dono' || uid == request.auth.uid);
     }
-
+    match /convitesProfessor/{code} {
+      allow get: if signed();
+      allow create, update: if professional() && code == request.auth.uid
+        && request.resource.data.keys().hasOnly(['professorUid', 'professorNome', 'ativo'])
+        && request.resource.data.professorUid == request.auth.uid
+        && request.resource.data.professorNome is string
+        && request.resource.data.professorNome.size() <= 160
+        && request.resource.data.ativo is bool;
+    }
+    match /vinculos/{uid} {
+      allow get: if signed() && (request.auth.uid == uid || owner()
+        || resource.data.professorUid == request.auth.uid);
+      allow create, update: if signed() && request.auth.uid == uid && linksEnabled()
+        && request.resource.data.keys().hasOnly(['alunoUid', 'professorUid', 'professorNome', 'ativo', 'convite', 'aceitoEm'])
+        && request.resource.data.alunoUid == uid
+        && request.resource.data.professorUid != uid
+        && request.resource.data.professorNome is string
+        && request.resource.data.professorNome.size() <= 160
+        && request.resource.data.aceitoEm is number
+        && request.resource.data.ativo is bool
+        && (request.resource.data.ativo == false
+          || (exists(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite))
+            && get(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite)).data.ativo == true
+            && get(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite)).data.professorUid == request.resource.data.professorUid
+            && exists(/databases/$(database)/documents/perfis/$(request.resource.data.professorUid))
+            && get(/databases/$(database)/documents/perfis/$(request.resource.data.professorUid)).data.role in ['professor', 'dono']))
+        && getAfter(/databases/$(database)/documents/perfis/$(uid)).data.professorUid
+          == (request.resource.data.ativo ? request.resource.data.professorUid : '');
+    }
     match /usuarios/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if isProf(request.auth.uid);
-      allow create: if isProf(request.auth.uid);
-      allow update: if isProf(request.auth.uid)
+      allow get: if signed() && (request.auth.uid == uid || canCoach(uid));
+      allow list: if owner();
+      allow create: if signed() && (request.auth.uid == uid || canCoach(uid));
+      allow update: if signed() && request.auth.uid == uid;
+      allow update: if canCoach(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['treinos']);
+      allow delete: if signed() && request.auth.uid == uid;
     }
-
-    // Planos publicados: aluno consulta; professor edita.
     match /planosProfessor/{uid} {
-      allow read: if request.auth != null
-        && (request.auth.uid == uid || isProf(request.auth.uid));
-      allow create, update: if request.auth != null && isProf(request.auth.uid)
+      allow get: if signed() && (request.auth.uid == uid || canCoach(uid));
+      allow list: if owner();
+      allow create, update: if canCoach(uid)
         && request.resource.data.keys().hasOnly(['versao', 'ficha', 'treinos', 'nomes', 'alimentar', 'uid', 'professorUid', 'alunoNome', 'atualizadoEm', 'revisao'])
         && request.resource.data.uid == uid
         && request.resource.data.professorUid == request.auth.uid
@@ -52,7 +113,7 @@ service cloud.firestore {
         && request.resource.data.alimentar is map
         && request.resource.data.alimentar.refeicoes is list
         && request.resource.data.revisao is string;
-      allow delete: if request.auth != null && isProf(request.auth.uid);
+      allow delete: if owner();
     }
   }
 }
