@@ -308,9 +308,11 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #bannerAluno .b-btns{display:flex;gap:6px;flex-shrink:0}
 #bannerAluno button{background:#fff;color:#b45309;border:0;padding:8px 12px;border-radius:8px;font-weight:700;font-size:13px}
 #modalProfessor .caixa{max-width:560px}
+
+#syncEstado{font-size:11px;color:#85858d;font-weight:400;white-space:nowrap}#syncEstado[data-estado="erro"]{color:#b64b21}@media(max-width:600px){#syncEstado{width:100%;text-align:right;font-size:10px}}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=14">
+<link rel="stylesheet" href="temas.css?v=15">
 </head>
 <body>
 <header>
@@ -320,6 +322,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <small class="brand-small">ACADEMIA TENDA</small>
   </div>
   <div class="topo">
+    <span id="syncEstado" role="status" aria-live="polite"></span>
     <button class="btn acc" id="btnInstalar" hidden>Instalar</button>
     <button class="btn" id="btnEditar" hidden>Editar</button>
     <button class="btn" id="btnConta" type="button">Entrar</button>
@@ -327,7 +330,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
-<div style="text-align:center;padding:10px 24px 0"><button class="btn acc" id="btnSincronizar" type="button" hidden>Sincronizar</button></div>
+
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
 <button class="btn" id="irEvolucao" type="button" aria-pressed="false"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4v16h16M8 15l4-5 4 2 4-7"/></svg>Evolução</button>
@@ -472,6 +475,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <button type="button" id="btnCancelarAluno">Cancelar</button>
   </div>
 </div>
+<div class="modal" id="modalConflitoSync" hidden><div class="box"><h2>Alterações em dois aparelhos</h2><p>As mesmas informações foram editadas de formas diferentes. Escolha a versão que deseja continuar usando. Uma cópia das duas versões fica guardada neste aparelho.</p><button class="btn acc" id="syncEscolherLocal">Manter a versão deste aparelho</button><button class="btn" id="syncEscolherNuvem">Usar a versão da nuvem</button></div></div>
 <script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -750,7 +754,7 @@ function podar(){
 }
 function salvarLocal(){
  if(sessaoAluno)return true;
- try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;statusSalvar(usuario?(navigator.onLine?'Salvo neste navegador':'Salvo no aparelho · sem conexão') : 'Salvo neste navegador');return true}
+ try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;indicadorSync(usuario?(navigator.onLine?'Salvando…':'Sem conexão'):'Salvo no aparelho',usuario?(navigator.onLine?'salvando':'offline'):'ok');return true}
  catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
 }
 function salvar(){alteracao++;salvarLocal();agendarEnvio();atualizarPainel();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
@@ -1105,8 +1109,8 @@ function montarDoc(){
   };
 }
 function agendarEnvio(){
- if(!usuario||!syncPronto||sessaoAluno)return;
- clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
+ if(!usuario||!syncPronto||sessaoAluno||syncConflito)return;
+ indicadorSync(navigator.onLine?'Salvando…':'Sem conexão',navigator.onLine?'salvando':'offline');clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
 }
 function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{}])}
 function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
@@ -1117,68 +1121,85 @@ function temConteudo(d){
  if(Object.values(d.pesos||{}).some(function(r){return r&&Array.isArray(r.hist)&&r.hist.length}))return true;
  return false;
 }
-async function enviarNuvem(forcar){
- if(!usuario||syncOcupado||sessaoAluno)return;
- const forza=!!forcar;
- if(!forza&&(!syncPronto||sincronizado===alteracao))return;
- syncOcupado=true;const uid=usuario.uid,seq=alteracao,expected=baseNuvem;
- const payload=JSON.parse(JSON.stringify(montarDoc()));payload.revisao=id();
- statusSalvar(localSalvo?'Salvo neste navegador · sincronizando…':'Sem cópia local · sincronizando…');
- try{
-  const fb=await getFB();const ref=fb.F.doc(fb.db,'usuarios',uid);
-  await fb.F.runTransaction(fb.db,async tx=>{
-const snap=await tx.get(ref);const remote=snap.exists()?versaoNuvem(snap.data()):null;
-   if(remote!==expected&&!forza)throw erroComCodigo('conflito');
-   if(!forza&&snap.exists()&&temConteudo(snap.data())&&!temConteudo(dados))throw erroComCodigo('nuvem-tem-dados');
+let syncBase=null,syncRetryTimer=null,syncRetries=0,syncConflito=null;
+function indicadorSync(text,kind,detail){const e=document.getElementById('syncEstado');if(e){e.textContent=text;e.dataset.estado=kind||'ok';e.title=detail||text}const d=document.getElementById('statusDados');if(d)d.textContent=''}
+function guardarBase(c){syncBase=c?JSON.parse(JSON.stringify(c)):null;if(usuario)try{localStorage.setItem(CHAVE+'_base_'+usuario.uid,JSON.stringify(syncBase))}catch(e){}}
+function tentarDepois(){clearTimeout(syncRetryTimer);if(!usuario||syncConflito)return;const uid=usuario.uid;const delay=Math.min(60000,2000*Math.pow(2,syncRetries++));syncRetryTimer=setTimeout(()=>{if(usuario&&usuario.uid===uid){if(syncPronto)enviarNuvem();else baixarNuvem()}},delay)}
+function igualSync(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function combinarSync(base,local,remote,path){
+ if(igualSync(local,remote))return local;
+ if(igualSync(local,base))return remote;
+ if(igualSync(remote,base))return local;
+ const maps=x=>x&&typeof x==='object'&&!Array.isArray(x);
+ if(maps(local)&&maps(remote)&&(maps(base)||base==null)){
+  const out={};for(const k of new Set([...Object.keys(base||{}),...Object.keys(local),...Object.keys(remote)])){
+   const v=combinarSync(base&&base[k],local[k],remote[k],(path||'')+'/'+k);if(v!==undefined)out[k]=v;
+  }return out;
+ }
+ if(Array.isArray(local)&&Array.isArray(remote)&&Array.isArray(base)){
+  const all=[...base,...local,...remote];const key=all.length&&all.every(e=>maps(e)&&e.id!=null)?'id':all.length&&all.every(e=>maps(e)&&e.d!=null)?'d':null;
+  if(key){const bm=new Map(base.map(e=>[e[key],e])),lm=new Map(local.map(e=>[e[key],e])),rm=new Map(remote.map(e=>[e[key],e]));const out=[];
+   const bo=base.map(e=>e[key]),lo=local.map(e=>e[key]),ro=remote.map(e=>e[key]);
+   const common=bo.filter(k=>lm.has(k)&&rm.has(k));const lc=lo.filter(k=>common.includes(k)),rc=ro.filter(k=>common.includes(k));
+   if(!igualSync(lc,common)&&!igualSync(rc,common)&&!igualSync(lc,rc))throw erroComCodigo('conflito');
+   const order=igualSync(lc,common)?ro:lo;
+   for(const k of new Set([...order,...lo,...ro,...bo])){const v=combinarSync(bm.get(k),lm.get(k),rm.get(k),(path||'')+'/'+k);if(v!==undefined)out.push(v)}return out;
+  }
+  if((path||'').startsWith('/progresso/')&&all.every(e=>typeof e==='string')){const bs=new Set(base),ls=new Set(local),rs=new Set(remote);return [...new Set([...local,...remote])].filter(k=>bs.has(k)?ls.has(k)&&rs.has(k):ls.has(k)||rs.has(k))}
+  if((path||'').endsWith('/ps'))return Array.from({length:Math.max(base.length,local.length,remote.length)},(_,i)=>combinarSync(base[i],local[i],remote[i],path+'/'+i));
+ }
+ throw erroComCodigo('conflito');
+}
+function conteudoSync(c){const d={};for(const k of ['treinos','progresso','pesos','nomes','concluidos','medidas'])d[k]=(c&&c[k])||{};return d}
+function aplicarSync(c){if(assinatura(c)===assinatura(dados))return;dados=conteudoSync(c);if(!Object.keys(dados.treinos).length)dados.treinos={A:[]};if(!dados.medidas.pesos)dados.medidas.pesos={};atualizarOrdem();garantirTreinoAtual();salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
+function conflitoSync(remote){syncPronto=false;syncConflito={uid:usuario.uid,remote,local:JSON.parse(JSON.stringify(montarDoc()))};try{localStorage.setItem(CHAVE+'_conflito_'+usuario.uid,JSON.stringify(syncConflito))}catch(e){}indicadorSync('Revisar alterações','erro','Há alterações diferentes em dois aparelhos. Escolha qual versão manter.');document.getElementById('modalConflitoSync').hidden=false}
+async function enviarNuvem(){
+ if(!usuario||syncOcupado||sessaoAluno||syncConflito)return false;
+ if(!syncPronto){await baixarNuvem();if(!syncPronto)return false}
+ if(sincronizado===alteracao)return true;
+ if(!navigator.onLine){indicadorSync('Sem conexão','offline','Salvo no aparelho. O envio será retomado automaticamente.');return false}
+ syncOcupado=true;const uid=usuario.uid,seq=alteracao,payload=JSON.parse(JSON.stringify(montarDoc())),base=syncBase;let enviado=null,success=false;
+ indicadorSync('Salvando…','salvando');
+ try{const fb=await getFB(),ref=fb.F.doc(fb.db,'usuarios',uid);
+  await fb.F.runTransaction(fb.db,async tx=>{const s=await tx.get(ref);const remote=s.exists()?s.data():null;
    if(!usuario||usuario.uid!==uid)throw erroComCodigo('conta-alterada');
-   tx.set(ref,payload);
-   });
-   if(usuario&&usuario.uid===uid){baseNuvem=versaoNuvem(payload);sincronizado=seq;syncPronto=true;statusSalvar(forza?'Enviado para a nuvem: a versão deste navegador agora está salva na sua conta.':'Salvo neste navegador e na nuvem')}
-  }catch(e){
-   const det=e&&(e.code||e.message)?String(e.code||e.message).slice(0,90):'desconhecido';
-   console.error('enviarNuvem falhou',e);
-   if(e.code==='conflito'){syncPronto=false;statusSalvar('Há outra versão na nuvem. Toque em Sincronizar para enviar a versão deste navegador.')}
-   else if(e.code==='nuvem-tem-dados'){syncPronto=false;statusSalvar('Sua conta já tem dados na nuvem e este navegador está vazio. Carregando os dados da conta...');setTimeout(baixarNuvem,400)}
-   else statusSalvar(localSalvo?('Salvo neste navegador · falha ao enviar ('+det+'). Tente novamente.'):'Salvamento falhou ('+det+'). Exporte um backup antes de fechar.');
- }finally{syncOcupado=false;if(!forza&&syncPronto&&alteracao!==seq)agendarEnvio()}
+   let content=conteudoSync(payload);
+   if(remote&&versaoNuvem(remote)!==baseNuvem){try{content=combinarSync(conteudoSync(base),content,conteudoSync(remote),'')}catch(e){e.remote=remote;throw e}}
+   enviado={...payload,...content,revisao:id(),atualizadoEm:Date.now()};tx.set(ref,enviado);
+  });
+  if(!usuario||usuario.uid!==uid)return false;
+  if(alteracao!==seq){try{const merged=combinarSync(conteudoSync(payload),conteudoSync(montarDoc()),conteudoSync(enviado),'');aplicarSync(merged)}catch(e){conflitoSync(enviado);return false}}
+  else aplicarSync(enviado);
+  guardarBase(enviado);baseNuvem=versaoNuvem(enviado);sincronizado=seq;syncPronto=true;syncRetries=0;success=true;clearTimeout(syncRetryTimer);indicadorSync(alteracao===seq?'Salvo na nuvem':'Salvando…',alteracao===seq?'ok':'salvando');return true;
+ }catch(e){if(!usuario||usuario.uid!==uid)return false;if(e.code==='conflito'){conflitoSync(e.remote||syncBase)}else{indicadorSync(localSalvo?'Salvo no aparelho':'Salvamento pendente',e.code==='permission-denied'?'erro':'offline',e.code==='permission-denied'?'Não foi possível acessar a nuvem. Seus dados locais foram mantidos.':'O envio será tentado novamente automaticamente.');tentarDepois()}return false}
+ finally{syncOcupado=false;if(success&&syncPronto&&!syncConflito&&alteracao!==seq)agendarEnvio()}
 }
 async function baixarNuvem(){
- if(!usuario||sessaoAluno)return;syncPronto=false;const uid=usuario.uid,seq=alteracao;
- try{
-  const fb=await getFB();
-  const ref=fb.F.doc(fb.db,'usuarios',uid);
-  let snap=null;
-  try{snap=await fb.F.getDoc(ref)}catch(erro1){if(!usuario||usuario.uid!==uid)return;snap=await fb.F.getDoc(ref)}
-  if(!usuario||usuario.uid!==uid)return;
-  const c=snap.exists()?snap.data():null;
-  baseNuvem=c?versaoNuvem(c):null;
-  if(c){
-   const remote=migrarConclusoes(JSON.parse(JSON.stringify(c)));
-   if(!remote.treinos||!Object.keys(remote.treinos).length||!Object.values(remote.treinos).every(a=>Array.isArray(a)))throw Error('Dados da nuvem inválidos');
-   if(seq!==alteracao){statusSalvar('Você editou durante a conexão. Toque em Sincronizar para enviar a versão deste navegador.');return}
-   if(assinatura(remote)!==assinatura(dados)&&temConteudo(remote)&&(ehPadrao()||treinosVaziosCompletos())){
-     localStorage.removeItem(CHAVE+'_antes_sincronizar');
-     dados={treinos:remote.treinos,progresso:remote.progresso||{},pesos:remote.pesos||{},nomes:remote.nomes||{},concluidos:{},medidas:(remote.medidas&&typeof remote.medidas==='object')?remote.medidas:{altura:'',pesos:{}}};
-     atualizarOrdem();garantirTreinoAtual();
-     alteracao++;salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
-     statusSalvar('Seus dados foram carregados da sua conta.');
-    }else if(!temConteudo(remote)&&!temConteudo(dados)){
-     statusSalvar('Sua conta está vazia. Se o treino estiver em outro aparelho, entre nele com esta mesma conta e toque em Sincronizar.');
-    }
+ if(!usuario||sessaoAluno||syncConflito)return;const uid=usuario.uid;syncPronto=false;indicadorSync('Carregando…','salvando');
+ try{const fb=await getFB(),s=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',uid));if(!usuario||usuario.uid!==uid)return;
+  const remote=s.exists()?migrarConclusoes(JSON.parse(JSON.stringify(s.data()))):null;
+  if(remote){if(!remote.treinos||!Object.values(remote.treinos).every(Array.isArray))throw Error('Dados inválidos');
+   if((!temConteudo(dados)&&!Object.keys((dados.medidas||{}).pesos||{}).length&&!dados.medidas?.altura)||ehPadrao())aplicarSync(remote);
+   else if(assinatura(remote)!==assinatura(dados)){
+    let base=syncBase;try{if(!base)base=JSON.parse(localStorage.getItem(CHAVE+'_base_'+uid)||'null')}catch(e){}
+    if(!base){conflitoSync(remote);return}
+    try{aplicarSync(combinarSync(conteudoSync(base),conteudoSync(dados),conteudoSync(remote),''))}catch(e){conflitoSync(remote);return}
    }
-  syncPronto=true;sincronizado=-1;agendarEnvio();
- }catch(e){
-  const det=e&&(e.code||e.message)?String(e.code||e.message).slice(0,90):'erro desconhecido';
-  console.error('baixarNuvem falhou',e);
-  statusSalvar(localSalvo?('Não foi possível carregar a nuvem ('+det+'). Tente novamente.'):'Não foi salvo localmente e a nuvem está indisponível. Exporte um backup.');
- }
+  }
+  guardarBase(remote);baseNuvem=remote?versaoNuvem(remote):null;syncPronto=true;syncRetries=0;
+  sincronizado=remote&&assinatura(remote)===assinatura(dados)?alteracao:-1;
+  if(sincronizado===alteracao)indicadorSync('Salvo na nuvem','ok');else agendarEnvio();
+ }catch(e){if(!usuario||usuario.uid!==uid)return;indicadorSync('Salvo no aparelho','offline','A conexão será retomada automaticamente.');tentarDepois()}
 }
-document.getElementById('btnSincronizar').onclick=function(){
-  if(!usuario||sessaoAluno)return;
-  if(temConteudo(dados)){enviarNuvem(true);statusSalvar('Enviando os dados deste aparelho para a sua conta...')}
-  else{statusSalvar('Este aparelho está vazio. Carregando seus dados da conta...');baixarNuvem()}
-};
-window.addEventListener('online',()=>{if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
+function escolherVersaoSync(local){
+ if(!usuario||!syncConflito||syncConflito.uid!==usuario.uid)return;
+ const c=syncConflito;aplicarSync(local?c.local:c.remote);guardarBase(c.remote);baseNuvem=c.remote?versaoNuvem(c.remote):null;syncConflito=null;syncPronto=true;alteracao++;sincronizado=-1;document.getElementById('modalConflitoSync').hidden=true;agendarEnvio();
+}
+document.getElementById('syncEscolherLocal').onclick=()=>escolherVersaoSync(true);
+document.getElementById('syncEscolherNuvem').onclick=()=>escolherVersaoSync(false);
+window.addEventListener('online',()=>{syncRetries=0;if(usuario){if(syncPronto)agendarEnvio();else baixarNuvem()}});
+window.addEventListener('offline',()=>{if(usuario)indicadorSync('Sem conexão','offline','Salvo no aparelho. O envio será retomado automaticamente.')});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&usuario&&!syncOcupado&&!syncConflito){if(sincronizado!==alteracao&&syncPronto)agendarEnvio();else baixarNuvem()}});
 
 const CODIGO_RESPONSAVEL='TENDA123';
 async function garantirPerfil(){
@@ -1400,8 +1421,7 @@ document.getElementById('profBusca').oninput=carregarPainelProfessor;
 async function iniciarAuth(){
   const fb=await getFB();
   fb.U.onAuthStateChanged(fb.auth,function(u){
-    clearTimeout(envioTimer);syncPronto=false;sincronizado=-1;usuario=u;
-    document.getElementById('btnSincronizar').hidden=!u;
+    clearTimeout(envioTimer);clearTimeout(syncRetryTimer);syncBase=null;syncConflito=null;syncRetries=0;document.getElementById('modalConflitoSync').hidden=true;syncPronto=false;sincronizado=-1;usuario=u;
     atualizarBtnInstalar();
     atualizaBotaoConta();
     if(u){
@@ -1449,17 +1469,11 @@ function limparDadosNavegador(){
   if(!document.getElementById('viewEvolucao').hidden)renderEvolucao();
 }
 document.getElementById('btnSair').onclick=async function(){
-  document.getElementById('modalPerfil').hidden=true;
-  const tinhaDados=!!usuario&&temConteudo(dados);
-  statusSalvar('Guardando seus dados na conta...');
-  let enviado=false;
-  if(tinhaDados){
-   try{await enviarNuvem(true);enviado=true}catch(e){}
-  }
-  try{const fb=await getFB();await fb.U.signOut(fb.auth)}catch(e){}
-  atualizaBotaoConta();
-  statusSalvar(tinhaDados&&!enviado?'Seus dados foram apagados deste navegador, mas NÃO foi possível salvá-los na conta. Entre novamente e toque em Sincronizar antes de sair.':'Este navegador foi esvaziado. Seus dados continuam guardados na sua conta.');
-  setTimeout(function(){location.reload()},1200);
+ const botao=this;botao.disabled=true;
+ try{
+  if(usuario){const ok=await enviarNuvem();if(!ok||sincronizado!==alteracao){statusSalvar('A saída foi adiada: há alterações sem envio confirmado. Seus dados foram mantidos neste aparelho.');return}}
+  const fb=await getFB();await fb.U.signOut(fb.auth);document.getElementById('modalPerfil').hidden=true;atualizaBotaoConta();
+ }catch(e){statusSalvar('Não foi possível sair da conta. Tente novamente.')}finally{botao.disabled=false}
 };
 document.getElementById('btnSemConta').onclick=function(){document.getElementById('modalLogin').hidden=true};
 document.getElementById('modalLogin').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
@@ -1763,6 +1777,7 @@ if(temConfig()){
 
 </body>
 </html>
+
 
 
 
