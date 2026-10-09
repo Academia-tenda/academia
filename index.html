@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=6">
+<link rel="stylesheet" href="temas.css?v=7">
 </head>
 <body>
 <header>
@@ -334,7 +334,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <button class="btn" id="irPlanos" type="button" aria-pressed="false" hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>Meus planos</button>
 </div>
 <div id="viewTreinos">
-<section class="welcome" id="boasVindas"><h2>Meus <em>treinos</em></h2><p>Exercícios, cargas e histórico.</p></section>
+<section class="welcome" id="boasVindas"><h2>Meus treinos</h2><p>Exercícios, cargas e histórico.</p></section>
 <section class="inicio-vazio" id="inicioVazio" hidden>
 <div class="inicio-arte" aria-hidden="true"><svg viewBox="0 0 240 160" fill="none"><circle cx="120" cy="80" r="65" fill="currentColor" opacity=".08"/><circle cx="120" cy="80" r="47" stroke="currentColor" opacity=".16" stroke-dasharray="4 8"/><g stroke="currentColor" stroke-width="10" stroke-linecap="round" transform="rotate(-25 120 80)"><path d="M82 80h76M82 55v50M66 66v28M158 55v50M174 66v28"/></g><path d="M188 30v14m-7-7h14M48 122v10m-5-5h10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
 <h2>Crie seu primeiro treino</h2><p>Adicione exercícios ou entre para acessar seus treinos salvos.</p>
@@ -382,7 +382,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   <div class="muted" id="pesoMsg" role="status" aria-live="polite"></div>
   <div class="chart-wrap" id="graficoPeso"></div><div class="small-note">O peso só aparece no gráfico nos dias em que você registrar aqui.</div></div>
   <div class="secao"><h2>Resumo da atividade</h2><div id="resumoEvolucao"></div></div>
-  <div class="secao"><h2>Seus dados</h2><p>Os registros ficam salvos neste navegador. Com login configurado, o aplicativo também tenta sincronizar com o Firebase.</p>
+  <div class="secao"><h2>Seus dados</h2><p>Consulte o status de salvamento da sua conta e exporte uma cópia dos seus registros.</p>
   <button class="btn" id="exportarCSV" type="button" style="width:100%">Exportar histórico de cargas (CSV)</button></div>
 </section>
 
@@ -424,7 +424,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <section id="pTab-ficha" hidden><div id="pFicha" class="p-form-grid"></div></section>
     <section id="pTab-alimentar" hidden><p class="small-note">Registre o plano definido pelo profissional responsável, com alimentos, quantidades e substituições.</p><div id="pInfoAlimentar" class="p-form-grid"></div><div id="pRefeicoes"></div><button class="btn" id="pAdicionarRefeicao" type="button">+ Refeição</button></section>
     <section id="pTab-previa" hidden><button class="btn" id="pImprimir" type="button">Imprimir / Salvar PDF</button><div id="pPrevia" class="p-folha"></div></section>
-    <div class="p-footer"><button class="btn" id="pSoTreino" type="button">Enviar só treinos</button><button class="btn acc" id="pPublicar" type="button">Publicar plano completo</button></div><p class="small-note">Editar salva um rascunho neste navegador. Publicar envia o plano ao aluno.</p>
+    <div class="p-footer p-publish-bar"><button class="btn" id="pSoTreino" type="button">Enviar só treinos</button><button class="btn acc" id="pPublicar" type="button">Publicar plano completo</button></div><p class="small-note">Editar salva um rascunho neste navegador. Publicar envia o plano ao aluno.</p>
    </div></main></div>
  </div>
 </div>
@@ -545,8 +545,8 @@ function renderAbas(){
   const nav=document.getElementById('abas'), edit=editando;
   nav.textContent='';
   ORDEM.forEach(function(t){
-    const a=document.createElement('button');
-    a.type='button'; a.className='aba'+(t===treinoAtual?' ativa':'');
+    const a=document.createElement(edit?'div':'button');
+    if(edit){a.setAttribute('role','group');a.setAttribute('aria-label','Editar treino '+t)}else a.type='button'; a.className='aba'+(t===treinoAtual?' ativa':'');
     a.dataset.t=t;
     const nome=nomeDo(t);
     if(edit){
@@ -575,7 +575,7 @@ function renderAbas(){
         b.onclick=function(ev){ev.stopPropagation();moverTreino(t,delta)};movimentos.appendChild(b);
       });a.appendChild(movimentos);
     }else{
-      a.textContent=t;
+      a.textContent=(nome==='Treino '+t||nome===t)?'Treino '+t:nome;
       a.title=(nome===NOMES[t]||nome===t)?'Treino '+t:nome;
     }
     nav.appendChild(a);
@@ -850,12 +850,12 @@ function render(){
       const num=document.createElement('b');
       num.textContent=String(s+1);
       const inp=document.createElement('input');
-      inp.type='text'; inp.inputMode='decimal'; inp.placeholder='kg';
+      inp.type='text'; inp.inputMode='decimal'; inp.placeholder='—';
       inp.setAttribute('aria-label','Peso da série '+(s+1)+' de '+ex.nome);
       const val=psAtual[s];
       inp.value=(val==null||val==='')?'':String(val).replace('.',',');
       (function(idx,el){el.oninput=function(){const ok=salvarSerie(ex,idx,el.value);el.setCustomValidity(ok===false?'Informe uma carga válida.':'')};el.onblur=function(){if(!el.checkValidity())el.reportValidity()}})(s,inp);
-      lab.appendChild(num); lab.appendChild(inp); sp.appendChild(lab);
+      const unit=document.createElement('span');unit.className='sp-unit';unit.textContent='kg';lab.appendChild(num); lab.appendChild(inp);lab.appendChild(unit); sp.appendChild(lab);
     }
     const ed=document.createElement('div');
     ed.className='edicao';
@@ -1664,7 +1664,7 @@ if(temConfig()){
   });
 }
 </script>
-<script src="professor.js?v=1"></script>
+<script src="professor.js?v=2"></script>
 </body>
 </html>
 
