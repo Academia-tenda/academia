@@ -1,5 +1,5 @@
-const CACHE='academia-v68-quiet-update';
-const ESSENCIAIS=['./','./index.html','./temas.css?v=18','./professor.css?v=1','./professor.js?v=6','./pwa.js?v=3','./conta.js?v=1','./fotos.js','./firebase-config.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png'];
+const CACHE='academia-v69-mobile-fields';
+const ESSENCIAIS=['./','./index.html','./temas.css?v=19','./professor.css?v=1','./professor.js?v=6','./pwa.js?v=3','./conta.js?v=1','./fotos.js','./firebase-config.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png'];
 const OPCIONAIS=['./img/tenda-gym.jpg','./img/logo_tenda.png','./img/logo_tenda_branco.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(ESSENCIAIS.map(u=>new Request(u,{cache:'reload'})));await Promise.allSettled(OPCIONAIS.map(u=>c.add(new Request(u,{cache:'reload'}))))})())});
 self.addEventListener('message',e=>{if(e.data&&e.data.type==='SKIP_WAITING')self.skipWaiting()});

@@ -418,3 +418,25 @@ body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos 
 :is(body,body.noite) #modalPerfil .acoesDados{margin:18px 0 0;justify-content:flex-start;gap:8px}
 :is(body,body.noite) #modalPerfil .acoesDados .btn{flex:1;min-height:44px;font-size:12px}
 @media(max-width:600px){:is(body,body.noite) #btnConta.av{padding:6px 10px}:is(body,body.noite) .conta-caixa{padding:22px}:is(body,body.noite) .overlay{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
+
+/* Professor mobile: full-width fields; overrides obsolete compact grids. */
+@media(max-width:760px){
+ :is(body,body.noite) #modalProfessor .p-exercicio{grid-template-columns:24px minmax(0,1fr) 44px;gap:12px 8px;align-items:center;padding:20px 0}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-num{grid-column:1;grid-row:1;align-self:center}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(2){grid-column:2;grid-row:1;display:block}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(3){grid-column:1/-1;grid-row:2}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(4){grid-column:1/-1;grid-row:3}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(5){grid-column:1/-1;grid-row:4}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(n+3){display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;align-items:center;margin:0}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.p-campo:nth-child(n+3)>span{margin:0;font-size:13px}
+ :is(body,body.noite) #modalProfessor .p-exercicio>.btn{grid-column:3;grid-row:1;min-width:44px;min-height:44px;padding:8px;align-self:end}
+ :is(body,body.noite) #modalProfessor .p-campo input,:is(body,body.noite) #modalProfessor .p-campo textarea{width:100%;min-width:0;min-height:48px;font-size:16px;display:block;padding:12px}
+ :is(body,body.noite) #modalProfessor .p-publish-bar{position:static;display:grid;grid-template-columns:1fr;padding:20px;margin-top:32px;box-shadow:none;gap:12px}
+ :is(body,body.noite) #modalProfessor .p-publish-info{width:100%;margin-bottom:4px}
+ :is(body,body.noite) #modalProfessor .p-publish-bar .btn{width:100%;min-height:48px;font-size:14px;margin:0;white-space:normal}
+ :is(body,body.noite) #modalProfessor .p-card-head{gap:12px}
+ :is(body,body.noite) #modalProfessor .p-card-head>.p-campo{flex:1 1 180px;min-width:0}
+ :is(body,body.noite) #modalProfessor .p-card-head>.btn.warn{margin-left:auto;min-height:44px}
+ :is(body,body.noite) #modalProfessor .p-form-grid{grid-template-columns:1fr}
+ :is(body,body.noite) #modalProfessor .caixa{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+}
