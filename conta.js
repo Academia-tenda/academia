@@ -1,0 +1,10 @@
+/* Atalhos da conta e navegação por teclado nos diálogos. */
+(function(){
+'use strict';const $=id=>document.getElementById(id);
+for(const [id,target] of [['perfilIrTreinos','irTreinos'],['perfilIrEvolucao','irEvolucao'],['perfilIrPlanos','irPlanos']])$(id).onclick=()=>{$('modalPerfil').hidden=true;$(target).click()};
+const dialogs=[['modalPerfil','btnFecharPerfil'],['modalLogin','btnSemConta'],['modalHist','btnFecharHist'],['modalProfessor','btnFecharProf'],['modalInstalar','fecharInstalar'],['modalConflitoSync',null]];
+let previous=new WeakMap();
+function focusables(root){return [...root.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter(e=>!e.hidden&&e.getClientRects().length)}
+if(typeof MutationObserver!=='undefined')for(const [id] of dialogs){const d=$(id);if(!d)continue;d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');if(!d.getAttribute('aria-labelledby')&&!d.getAttribute('aria-label'))d.setAttribute('aria-label',({modalLogin:'Entrar na conta',modalHist:'Histórico de cargas',modalConflitoSync:'Revisar alterações entre aparelhos'})[id]||'Janela do aplicativo');new MutationObserver(()=>{if(!d.hidden){previous.set(d,document.activeElement);const f=focusables(d);if(f[0])f[0].focus()}else{const p=previous.get(d);if(p&&p.isConnected&&!p.closest('[hidden]'))p.focus()}}).observe(d,{attributes:true,attributeFilter:['hidden']})}
+document.addEventListener('keydown',e=>{const open=dialogs.find(([id])=>$(id)&&!$(id).hidden);if(!open)return;const [id,close]=open,root=$(id);if(e.key==='Escape'&&close){e.preventDefault();$(close).click();return}if(e.key!=='Tab')return;const f=focusables(root);if(!f.length)return;const first=f[0],last=f[f.length-1];if(e.shiftKey&&(document.activeElement===first||!root.contains(document.activeElement))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||!root.contains(document.activeElement))){e.preventDefault();first.focus()}});
+})();

@@ -314,7 +314,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #syncEstado{font-size:11px;color:#85858d;font-weight:400;white-space:nowrap}#syncEstado[data-estado="erro"]{color:#b64b21}@media(max-width:600px){#syncEstado{width:100%;text-align:right;font-size:10px}}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=17">
+<link rel="stylesheet" href="temas.css?v=18">
 </head>
 <body>
 <header>
@@ -423,15 +423,19 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   </div>
 </div>
 
-<div class="overlay" id="modalPerfil" hidden>
-  <div class="caixa">
+<div class="overlay" id="modalPerfil" hidden role="dialog" aria-modal="true" aria-labelledby="perfilTitulo">
+  <div class="caixa conta-caixa">
+    <div class="conta-topo"><h2 id="perfilTitulo">Minha conta</h2><button class="btn" id="btnFecharPerfil" type="button" aria-label="Fechar perfil">Fechar</button></div>
     <div class="avatar" id="perfilAvatar">U</div>
     <div id="perfilNome"></div>
     <div class="muted" id="perfilEmail"></div>
     <div class="muted" id="perfilCargo"></div>
+    <div class="conta-resumo" aria-label="Sua atividade"><div><strong id="perfilTreinos">0</strong><span>Treinos na rotina</span></div><div><strong id="perfilDias">0</strong><span>Dias com atividade</span></div></div>
+    <div class="conta-atalhos"><button class="btn" id="perfilIrTreinos" type="button">Meus treinos <span aria-hidden="true">→</span></button><button class="btn" id="perfilIrEvolucao" type="button">Minha evolução <span aria-hidden="true">→</span></button><button class="btn" id="perfilIrPlanos" type="button">Planos do professor <span aria-hidden="true">→</span></button></div>
+    <p id="perfilSync" class="small-note"></p>
     <div id="profAcoes"></div>
     <button class="btn warn" id="btnSair">Sair da conta</button>
-    <button class="link" id="btnFecharPerfil">Fechar</button>
+
   </div>
 </div>
 
@@ -503,7 +507,7 @@ function atualizarPainel(){
  renderSemana();
  const dias=Object.keys(dados.progresso||{});
  const totalHoje=Object.values(dados.progresso[hoje()]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
- const diasAtivos=dias.filter(diaAtivo).length;
+ const diasAtivos=diasComTreino().length;
  const cargas=Object.values(dados.pesos||{}).reduce((n,r)=>n+(Array.isArray(r.hist)?r.hist.length:0),0);
  document.getElementById('totalHoje').textContent=totalHoje;
  document.getElementById('diasTreino').textContent=diasAtivos;
@@ -760,7 +764,7 @@ function podar(){
 }
 function salvarLocal(){
  if(sessaoAluno)return true;
- try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;indicadorSync(usuario?(navigator.onLine?'Salvando…':'Sem conexão'):'',usuario?(navigator.onLine?'salvando':'offline'):'ok');return true}
+ try{localStorage.setItem(CHAVE,JSON.stringify(dados));if(usuario)localStorage.setItem(CHAVE+'_owner',usuario.uid);localSalvo=true;indicadorSync(usuario?(navigator.onLine?'Salvando…':'Sem conexão'):'',usuario?(navigator.onLine?'salvando':'offline'):'ok');return true}
  catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
 }
 function salvar(){alteracao++;salvarLocal();agendarEnvio();atualizarPainel();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
@@ -1093,15 +1097,15 @@ function sairDoModoEdicao(){
 
 function atualizaBotaoConta(){
   const b=document.getElementById('btnConta');
-  document.getElementById('btnEditar').hidden=false;
+  document.getElementById('btnEditar').hidden=document.getElementById('viewTreinos').hidden;
   b.hidden=false;
   if(usuario){
     b.classList.add('av');
     const inic=(usuario.displayName||usuario.email||'U').trim().charAt(0).toUpperCase();
-    b.textContent=inic||'U';
+    b.replaceChildren();const badge=document.createElement('span');badge.className='conta-inicial';badge.textContent=inic||'U';const label=document.createElement('span');label.textContent='Perfil';b.append(badge,label);b.setAttribute('aria-label','Abrir perfil de '+(usuario.displayName||usuario.email||'usuário'));b.setAttribute('aria-haspopup','dialog');
   }else{
     b.classList.remove('av');
-    b.textContent='Entrar';
+    b.textContent='Entrar';b.setAttribute('aria-label','Entrar na sua conta');b.setAttribute('aria-haspopup','dialog');
   }
 }
 function montarDoc(){
@@ -1435,7 +1439,8 @@ async function iniciarAuth(){
     atualizarBtnInstalar();
     atualizaBotaoConta();
     if(u){
-      if(ultimoUid&&ultimoUid!==u.uid){
+      let donoLocal=ultimoUid;try{donoLocal=donoLocal||localStorage.getItem(CHAVE+'_owner')}catch(e){}
+      if(donoLocal&&donoLocal!==u.uid){
         limparDadosNavegador();
         statusSalvar('Conta trocada. Carregando seus dados...');
       }
@@ -1444,9 +1449,9 @@ async function iniciarAuth(){
       baixarNuvem();
       garantirPerfil();
     }else{
+      let tinhaConta=!!ultimoUid;try{tinhaConta=tinhaConta||!!localStorage.getItem(CHAVE+'_owner')}catch(e){}
       ultimoUid=null;
-      const tinha=!!dados&&temConteudo(dados);
-      limparDadosNavegador();
+      if(tinhaConta)limparDadosNavegador();
       indicadorSync('','ok');
     }
   });
@@ -1454,8 +1459,12 @@ async function iniciarAuth(){
 
 
 function abrirPerfil(){
+  if(!usuario)return;
+  document.getElementById('perfilTreinos').textContent=Object.values(dados.treinos||{}).filter(a=>a.some(e=>String(e.nome||'').trim())).length;
+  document.getElementById('perfilDias').textContent=diasComTreino().length;
+  document.getElementById('perfilSync').textContent=document.getElementById('syncEstado').textContent||'As alterações dos treinos são salvas automaticamente.';
   document.getElementById('perfilAvatar').textContent=(usuario.displayName||usuario.email||'U').trim().charAt(0).toUpperCase()||'U';
-  document.getElementById('perfilNome').textContent=usuario.displayName||'(sem nome)';
+  document.getElementById('perfilNome').textContent=usuario.displayName||'Sua conta';
   document.getElementById('perfilEmail').textContent=usuario.email||'';
   atualizarCargoPerfil();
   document.getElementById('modalPerfil').hidden=false;
@@ -1468,7 +1477,7 @@ function abrirLogin(){
 document.getElementById('btnFecharPerfil').onclick=function(){document.getElementById('modalPerfil').hidden=true};
 document.getElementById('modalPerfil').addEventListener('click',function(e){if(e.target===this)this.hidden=true});
 function limparDadosNavegador(){
-  try{localStorage.removeItem(CHAVE)}catch(e){}
+  try{localStorage.removeItem(CHAVE);localStorage.removeItem(CHAVE+'_owner')}catch(e){}
   try{localStorage.removeItem('academia_v2')}catch(e){}
   try{localStorage.removeItem(CHAVE+'_antes_sincronizar')}catch(e){}
   dados=carregar();
@@ -1764,7 +1773,8 @@ if(temConfig()){
  atualizar();
 })();
 </script>
-<script src="professor.js?v=5"></script>
+<script src="professor.js?v=6"></script>
+<script src="conta.js?v=1"></script>
 
 <script>
 (function(){
@@ -1776,6 +1786,7 @@ if(temConfig()){
 
 </body>
 </html>
+
 
 
 

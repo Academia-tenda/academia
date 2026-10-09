@@ -396,3 +396,25 @@ body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos 
 :is(body,body.noite) #modalInstalar .eyebrow{display:block;padding-top:14px}
 @media(display-mode:standalone){:is(body,body.noite) header{padding-top:calc(14px + env(safe-area-inset-top))}:is(body,body.noite) #btnInstalar{display:none}:is(body,body.noite) .modal{padding-top:calc(20px + env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
 @media(max-width:600px){:is(body,body.noite) .pwa-atualizacao{margin:12px 20px 0}:is(body,body.noite) #modalInstalar .caixa{padding:22px}:is(body,body.noite) .view-switch{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}:is(body,body.noite) .modal input,:is(body,body.noite) .modal textarea{scroll-margin:100px 0 140px}}
+
+/* Account: a clear entry point and focused, consistent content. */
+:is(body,body.noite) #btnConta.av{width:auto;border-radius:9px;display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--superficie);color:var(--texto);border:1px solid var(--linha)}
+:is(body,body.noite) .conta-inicial{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:var(--suave);color:var(--acento);font-size:12px;font-weight:700}
+:is(body,body.noite) .conta-caixa{width:100%;max-width:440px;padding:26px}
+:is(body,body.noite) .conta-topo{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}
+:is(body,body.noite) .conta-topo h2{margin:0;font-size:21px}
+:is(body,body.noite) #perfilNome{font-size:21px;letter-spacing:-.5px;margin-top:12px}
+:is(body,body.noite) #perfilEmail{overflow-wrap:anywhere;text-align:center;font-size:13px}
+:is(body,body.noite) #perfilCargo{font-size:12px;text-align:center;margin:10px 0 22px}
+:is(body,body.noite) .conta-resumo{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--linha);border-radius:10px;margin:22px 0;overflow:hidden}
+:is(body,body.noite) .conta-resumo>div{padding:16px;text-align:center}
+:is(body,body.noite) .conta-resumo>div+div{border-left:1px solid var(--linha)}
+:is(body,body.noite) .conta-resumo strong{display:block;font-size:24px;letter-spacing:-.5px}
+:is(body,body.noite) .conta-resumo span{color:var(--secundario);font-size:11px}
+:is(body,body.noite) .conta-atalhos{display:flex;flex-direction:column;gap:8px}
+:is(body,body.noite) .conta-atalhos .btn{display:flex;align-items:center;justify-content:space-between;text-align:left;min-height:46px}
+:is(body,body.noite) #perfilSync{margin:18px 0;padding:0;font-size:11px;color:var(--secundario)}
+:is(body,body.noite) .overlay{padding:20px 16px;overscroll-behavior:contain}
+:is(body,body.noite) #modalPerfil .acoesDados{margin:18px 0 0;justify-content:flex-start;gap:8px}
+:is(body,body.noite) #modalPerfil .acoesDados .btn{flex:1;min-height:44px;font-size:12px}
+@media(max-width:600px){:is(body,body.noite) #btnConta.av{padding:6px 10px}:is(body,body.noite) .conta-caixa{padding:22px}:is(body,body.noite) .overlay{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}}

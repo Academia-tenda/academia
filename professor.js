@@ -101,11 +101,13 @@ $('pAcesso').onclick=abrirPainelProfessor;
 const oldConta=atualizaBotaoConta;atualizaBotaoConta=function(){oldConta();$('pAcesso').hidden=!profissional();$('irPlanos').hidden=!usuario;if(!usuario){$('viewPlanos').hidden=true;$('alunoPlano').replaceChildren();selecionado=null;plano=null;modificado=false;$('modalProfessor').hidden=true}};
 const nomeAnterior=nomeDo;nomeDo=function(t){const first=dados&&dados.treinos&&dados.treinos[t]&&dados.treinos[t][0];return first&&first.treinoNome?first.treinoNome:nomeAnterior(t)};
 const vistaAnterior=mudarVista;mudarVista=function(v){$('viewPlanos').hidden=true;$('irPlanos').classList.remove('selecionado');$('irPlanos').setAttribute('aria-pressed','false');vistaAnterior(v)};
-async function verPlanos(){if(!usuario){abrirLogin();return}$('viewTreinos').hidden=true;$('viewEvolucao').hidden=true;$('viewPlanos').hidden=false;sairDoModoEdicao();$('btnEditar').hidden=true;for(const k of ['irTreinos','irEvolucao','irPlanos']){$(k).classList.toggle('selecionado',k==='irPlanos');$(k).setAttribute('aria-pressed',String(k==='irPlanos'))}const uid=usuario.uid;$('alunoPlano').textContent='Carregando seu plano…';$('pAlunoImprimir').hidden=true;
+let buscandoPlano=false;
+async function verPlanos(){if(buscandoPlano)return;if(!usuario){abrirLogin();return}buscandoPlano=true;$('pAlunoAtualizar').disabled=true;$('viewTreinos').hidden=true;$('viewEvolucao').hidden=true;$('viewPlanos').hidden=false;sairDoModoEdicao();$('btnEditar').hidden=true;for(const k of ['irTreinos','irEvolucao','irPlanos']){$(k).classList.toggle('selecionado',k==='irPlanos');$(k).setAttribute('aria-pressed',String(k==='irPlanos'))}const uid=usuario.uid;$('alunoPlano').textContent='Carregando seu plano…';$('pAlunoImprimir').hidden=true;
  try{const fb=await getFB();const s=await fb.F.getDoc(fb.F.doc(fb.db,'planosProfessor',uid));if(!usuario||usuario.uid!==uid)return;if(!s.exists()){$('alunoPlano').textContent='Você ainda não recebeu um plano. Quando seu professor publicar, ele aparecerá aqui.';return}desenharPrevia($('alunoPlano'),normalizar(s.data()),usuario.displayName||'Meu plano');$('pAlunoImprimir').hidden=false}
- catch(e){if(!usuario||usuario.uid!==uid)return;$('alunoPlano').textContent=e.code==='permission-denied'?'A consulta dos planos ainda precisa ser ativada pelo responsável nas regras do Firebase.':'Não foi possível carregar. Tente novamente.'}
+ catch(e){if(!usuario||usuario.uid!==uid)return;$('alunoPlano').textContent=e.code==='permission-denied'?'A consulta dos planos ainda precisa ser ativada pelo responsável nas regras do Firebase.':'Não foi possível carregar. Confira sua conexão e tente novamente.'}finally{buscandoPlano=false;$('pAlunoAtualizar').disabled=false}
 }
 $('irPlanos').onclick=verPlanos;$('pAlunoAtualizar').onclick=verPlanos;$('pAlunoImprimir').onclick=()=>imprimir($('alunoPlano'));
 atualizaBotaoConta();
 })();
+
 
