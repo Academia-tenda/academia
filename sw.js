@@ -1,5 +1,5 @@
-const CACHE = 'academia-v49-identidade';
-const ARQUIVOS = ['./temas.css?v=2', './professor.js?v=1', './professor.css?v=1', './', './index.html', './fotos.js', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png', './icons/logo_tenda_tab.png',
+const CACHE = 'academia-v50-membresia';
+const ARQUIVOS = ['./temas.css?v=3', './professor.js?v=1', './professor.css?v=1', './', './index.html', './fotos.js', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png', './icons/logo_tenda_tab.png',
 './img/logo_tenda.png', './img/logo_tenda_branco.png',
 './img/abdc_curto.jpg', './img/abdc_inferior.jpg', './img/abdc_remador.jpg', './img/barra_fixa.jpg', './img/cadeira_abdutora.jpg', './img/cadeira_extensora.jpg', './img/cadeira_flexora.jpg', './img/desenvolvimento_militar.jpg', './img/elevacao_frontal.jpg', './img/elevacao_lateral.jpg', './img/elevacao_posterior.jpg', './img/encolhimento.jpg', './img/flexao_chao.jpg', './img/legpress.jpg', './img/panturrilha_pe.jpg', './img/peckdeck.jpg', './img/puxada_alta.jpg', './img/remada_baixa.jpg', './img/remada_unilateral.jpg', './img/rosca_alternada.jpg', './img/rosca_punho.jpg', './img/rosca_scott.jpg', './img/rosca_w.jpg', './img/supino_halteres.jpg', './img/supino_inclinado_barra.jpg', './img/supino_reto_barra.jpg', './img/triceps_frances.jpg', './img/triceps_polia.jpg', './img/triceps_testa.jpg'];
 
