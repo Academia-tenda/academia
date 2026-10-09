@@ -149,3 +149,10 @@ body.noite .btn.acc,body.noite .btn.av{color:#17191c}
 :is(body,body.noite) .inicio-vazio::before{display:none}
 :is(body,body.noite) .btn{border-radius:10px}
 @media(max-width:600px){:is(body,body.noite) #lista .item{padding:16px}:is(body,body.noite) #lista .sp{flex-basis:72px}}
+
+:is(body,body.noite) .ordem-controles{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:is(body,body.noite) .ordem-btn{background:var(--campo);color:var(--texto);border:0;border-radius:8px;padding:9px 12px;min-height:40px;cursor:pointer}
+:is(body,body.noite) .ordem-btn:disabled{opacity:.35;cursor:default}
+:is(body,body.noite) .ordem-puxador{font-size:26px;padding:6px 10px;cursor:grab;color:var(--secundario)}
+:is(body,body.noite) #lista .item.ordem-alvo{outline:2px solid var(--acento);outline-offset:3px}
+:is(body,body.noite) .ordem-arrastando{opacity:.5}

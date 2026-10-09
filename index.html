@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=4">
+<link rel="stylesheet" href="temas.css?v=5">
 </head>
 <body>
 <header>
@@ -751,6 +751,20 @@ function atualizarInicio(){
 document.getElementById('comecarTreino').onclick=function(){if(!editando)document.getElementById('btnEditar').click();document.getElementById('btnAdicionar').click()};
 document.getElementById('entrarInicio').onclick=abrirLogin;
 document.getElementById('importarInicio').onclick=()=>document.getElementById('btnImportar').click();
+
+function moverExercicio(id,delta){
+ if(!editando)return;
+ const arr=dados.treinos[treinoAtual],from=arr.findIndex(e=>e.id===id),to=from+delta;
+ if(from<0||to<0||to>=arr.length)return;
+ const ex=arr.splice(from,1)[0];arr.splice(to,0,ex);salvar();render();
+}
+function soltarExercicio(id,alvo){
+ if(!editando||id===alvo)return;
+ const arr=dados.treinos[treinoAtual],from=arr.findIndex(e=>String(e.id)===id),to=arr.findIndex(e=>String(e.id)===alvo);
+ if(from<0||to<0)return;
+ const ex=arr.splice(from,1)[0];arr.splice(to,0,ex);salvar();render();
+}
+
 function render(){
  document.getElementById('btnConcluir').hidden=editando;
   document.getElementById('nomeTreino').textContent=nomeDo(treinoAtual);
@@ -768,6 +782,11 @@ function render(){
   arr.forEach(function(ex){
     const li=document.createElement('li');
     li.className='item'+(feitosArr.indexOf(ex.id)>-1?' done':'');
+    if(editando){
+      li.ondragover=function(ev){if(ev.dataTransfer.types.includes('application/x-tenda-exercicio')){ev.preventDefault();li.classList.add('ordem-alvo')}};
+      li.ondragleave=function(){li.classList.remove('ordem-alvo')};
+      li.ondrop=function(ev){ev.preventDefault();soltarExercicio(ev.dataTransfer.getData('application/x-tenda-exercicio'),String(ex.id))};
+    }
     const chk=document.createElement('button');
     chk.className='check';
     chk.textContent='✓';
@@ -818,6 +837,20 @@ function render(){
     const ed=document.createElement('div');
     ed.className='edicao';
     ed.innerHTML='<div class="linha1"><input class="nomei" placeholder="Nome do exercício"><input class="s" placeholder="Séries" inputmode="numeric"><input class="r" placeholder="Repetições"></div><button class="del">Remover</button>';
+    if(editando){
+      const ordem=document.createElement('div');ordem.className='ordem-controles';
+      const handle=document.createElement('span');handle.className='ordem-puxador';handle.textContent='⠿';handle.draggable=true;handle.title='Arrastar exercício';
+      handle.ondragstart=function(ev){ev.dataTransfer.setData('application/x-tenda-exercicio',String(ex.id));ev.dataTransfer.effectAllowed='move';li.classList.add('ordem-arrastando')};
+      handle.ondragend=function(){li.classList.remove('ordem-arrastando');document.querySelectorAll('.ordem-alvo').forEach(e=>e.classList.remove('ordem-alvo'))};
+      ordem.appendChild(handle);
+      [-1,1].forEach(function(delta){
+        const b=document.createElement('button');b.type='button';b.className='ordem-btn';b.textContent=delta<0?'↑ Subir':'↓ Descer';
+        b.setAttribute('aria-label',(delta<0?'Subir ':'Descer ')+(ex.nome||'exercício'));
+        const pos=arr.indexOf(ex);b.disabled=delta<0?pos===0:pos===arr.length-1;
+        b.onclick=function(){moverExercicio(ex.id,delta)};ordem.appendChild(b);
+      });
+      ed.appendChild(ordem);
+    }
     const inpFoto=document.createElement('input');
     inpFoto.type='file'; inpFoto.accept='image/*'; inpFoto.style.display='none';
     const btnFoto=document.createElement('button');
