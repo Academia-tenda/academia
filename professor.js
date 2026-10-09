@@ -44,6 +44,23 @@ async function abrirAluno(a){
   mensagem(regraPendente?'Treinos disponíveis. Para publicar a ficha e o plano alimentar, é necessário publicar as novas regras do Firestore. O rascunho pode ser preparado aqui.':modificado?'Rascunho recuperado. Ainda não publicado.':'Alterações chegam ao aluno após a publicação.',regraPendente);
  }catch(e){$('pVazio').textContent='Não foi possível abrir o aluno. Tente novamente.';mensagem('Erro ao carregar ('+(e.code||e.message)+').',true)}finally{carregando=false}
 }
+function deselecionarAluno(){
+ if(carregando||salvando||!selecionado)return;
+ const nome=selecionado.nome||selecionado.email||'Aluno';
+ if(modificado){
+  try{localStorage.setItem(chaveRascunho(selecionado.uid),JSON.stringify(plano))}
+  catch(e){mensagem('Não foi possível guardar o rascunho. Faça um backup antes de voltar aos alunos.',true);return}
+ }
+ const guardado=modificado;
+ selecionado=null;plano=null;basePlano=null;modificado=false;evolucaoAluno={};
+ $('pEditor').hidden=true;$('pVazio').hidden=false;
+ $('pVazio').textContent='Selecione um aluno na lista para consultar sua evolução e preparar seu plano.';
+ $('pResumoAluno').textContent='Nenhum';$('pResumoPlano').textContent='Selecione um aluno';
+ $('pAlunoNome').textContent='';$('pAlunoEmail').textContent='';$('pEvolucaoStatus').textContent='';
+ for(const id of ['pEvolucaoAluno','pFicha','pTreinos','pInfoAlimentar','pRefeicoes','pPrevia'])$(id).replaceChildren();
+ desenharAlunos();mensagem(guardado?'Rascunho de '+nome+' guardado neste navegador. Selecione um aluno para continuar.':'Selecione um aluno para continuar.');
+ $('profBusca').focus({preventScroll:true});$('profBusca').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
 function desenharFicha(){const root=$('pFicha');root.replaceChildren();const fields=[['titulo','Título do plano'],['objetivo','Objetivo'],['idade','Idade'],['sexo','Sexo (opcional)'],['peso','Peso (kg)'],['altura','Altura (cm)'],['profissional','Profissional responsável'],['registro','Registro profissional'],['cardio','Atividade complementar / cardio'],['observacoes','Orientações gerais']];fields.forEach(([k,label])=>root.append(campo(label,plano.ficha[k],v=>{plano.ficha[k]=v;mudou()},k==='observacoes')))}
 function proxima(){let i=0;while(plano.treinos[String.fromCharCode(65+i)])i++;return String.fromCharCode(65+i)}
 function desenharTreinos(){resumoEditor();const root=$('pTreinos');root.replaceChildren();for(const [t,exs] of Object.entries(plano.treinos)){
@@ -96,6 +113,7 @@ window.addEventListener('beforeunload',e=>{if(modificado){e.preventDefault();e.r
 // O painel novo substitui o modal antigo, mantendo o fluxo de permissões existente.
 abrirPainelProfessor=function(){if(!profissional())return;document.getElementById('modalPerfil').hidden=true;$('modalProfessor').hidden=false;if(!selecionado){$('pEditor').hidden=true;$('pVazio').hidden=false}listaAlunos()};
 $('profBusca').oninput=desenharAlunos;
+$('pVoltarAlunos').onclick=deselecionarAluno;
 $('btnFecharProf').onclick=()=>{if(!salvando&&sairSeguro())$('modalProfessor').hidden=true};
 // Evita fechar e perder contexto ao clicar fora do painel.
 $('modalProfessor').addEventListener('click',e=>{if(e.target===$('modalProfessor')){$('modalProfessor').hidden=false}});
