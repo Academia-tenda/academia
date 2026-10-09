@@ -1,7 +1,7 @@
 /* Academia Tenda: editor de planos do professor e consulta do aluno. */
 (function(){
 'use strict';
-let alunos=[],selecionado=null,plano=null,basePlano=null,carregando=false,salvando=false,modificado=false,evolucaoAluno={},atualizandoEvolucao=false;
+let alunos=[],selecionado=null,plano=null,basePlano=null,carregando=false,salvando=false,modificado=false,evolucaoAluno={},atualizandoEvolucao=false,acompanhamento={},buscandoAcompanhamento=false;
 const $=id=>document.getElementById(id);
 const clonar=x=>JSON.parse(JSON.stringify(x));
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
@@ -25,17 +25,24 @@ function limitar(input,max){return String(input||'').trim().slice(0,max||2000)}
 function normalizar(c){const d=vazio();if(c&&typeof c==='object'){for(const k of ['ficha','alimentar'])if(c[k]&&typeof c[k]==='object')Object.assign(d[k],c[k]);if(c.treinos&&typeof c.treinos==='object')d.treinos=clonar(c.treinos);if(c.nomes&&typeof c.nomes==='object')d.nomes=clonar(c.nomes)}if(!Array.isArray(d.alimentar.refeicoes))d.alimentar.refeicoes=[];return d}
 async function listaAlunos(){
  if(!profissional())return;mensagem('Carregando alunos…');
- try{const fb=await getFB();const snap=await fb.F.getDocs(fb.F.collection(fb.db,'perfis'));alunos=[];snap.forEach(d=>{const v=d.data();if(v&&v.uid&&v.uid!==usuario.uid&&v.role!=='pendente')alunos.push(v)});alunos.sort((a,b)=>String(a.nome||a.email).localeCompare(String(b.nome||b.email)));desenharAlunos();mensagem(alunos.length?'Selecione um aluno para editar seus planos.':'Nenhum aluno cadastrado ainda.');await carregarPainelProfessor();}
+ try{const fb=await getFB();const snap=await fb.F.getDocs(fb.F.collection(fb.db,'perfis'));alunos=[];snap.forEach(d=>{const v=d.data();if(v&&v.uid&&v.uid!==usuario.uid&&(!v.role||v.role==='aluno'))alunos.push(v)});alunos.sort((a,b)=>String(a.nome||a.email).localeCompare(String(b.nome||b.email)));desenharAlunos();mensagem(alunos.length?'Selecione um aluno para editar seus planos.':'Nenhum aluno cadastrado ainda.');await carregarPainelProfessor();await carregarAcompanhamento();}
  catch(e){mensagem('Não foi possível carregar alunos ('+(e.code||e.message)+').',true)}
 }
-function desenharAlunos(){const root=$('pAlunos');root.replaceChildren();const q=$('profBusca').value.trim().toLowerCase();const filtrados=alunos.filter(a=>(String(a.nome||'')+' '+String(a.email||'')).toLowerCase().includes(q));$('pTotal').textContent=alunos.length+' alunos';$('pResumoTotal').textContent=String(alunos.length);filtrados.forEach(a=>{const b=botao('',()=>abrirAluno(a),'p-aluno'+(selecionado&&selecionado.uid===a.uid?' ativo':''));b.append(node('span','p-avatar',(a.nome||a.email||'A').slice(0,1).toUpperCase()));const tx=node('span');tx.append(node('strong','',a.nome||'Aluno'),node('small','',a.email||''));b.append(tx);root.append(b)});if(!filtrados.length)root.append(node('p','small-note','Nenhum aluno encontrado.'))}
+function statusAluno(uid){const v=acompanhamento[uid];if(!v)return{texto:'Acompanhamento não consultado',tipo:'desconhecido'};if(v.erro)return{texto:'Atividade indisponível',tipo:'desconhecido'};if(!v.ultima)return{texto:'Sem registros de atividade',tipo:'sem'};const now=new Date(hoje()+'T12:00:00'),last=new Date(v.ultima+'T12:00:00'),dias=Math.round((now-last)/86400000);return{texto:dias===0?'Atividade hoje':dias===1?'Atividade ontem':'Última atividade há '+dias+' dias',tipo:dias>=7?'inativos':'ativo'}}
+function dataPlano(v){const n=typeof v==='number'?v:v&&typeof v.seconds==='number'?v.seconds*1000:0;return n&&Number.isFinite(n)?new Date(n).toLocaleDateString('pt-BR'):null}
+function desenharAlunos(){const root=$('pAlunos');root.replaceChildren();const q=$('profBusca').value.trim().toLowerCase(),filtro=$('pFiltroAtividade').value;const filtrados=alunos.filter(a=>(String(a.nome||'')+' '+String(a.email||'')).toLowerCase().includes(q)&&(filtro==='todos'||statusAluno(a.uid).tipo===filtro));$('pTotal').textContent=alunos.length+' alunos';$('pResumoTotal').textContent=String(alunos.length);filtrados.forEach(a=>{const b=botao('',()=>abrirAluno(a),'p-aluno'+(selecionado&&selecionado.uid===a.uid?' ativo':''));b.append(node('span','p-avatar',(a.nome||a.email||'A').slice(0,1).toUpperCase()));const tx=node('span');tx.append(node('strong','',a.nome||'Aluno'),node('small','',a.email||''));const status=statusAluno(a.uid);tx.append(node('small','p-activity-badge '+status.tipo,status.texto));const info=acompanhamento[a.uid];if(info){const date=dataPlano(info.publicado);tx.append(node('small','',info.erroPlano?'Publicação não consultada':date?'Plano publicado em '+date:info.temPlano?'Plano publicado · data indisponível':'Sem plano publicado'))}b.append(tx);root.append(b)});if(!filtrados.length)root.append(node('p','small-note',buscandoAcompanhamento?'Consultando acompanhamento…':'Nenhum aluno neste filtro.'))}
+async function carregarAcompanhamento(){if(!profissional()||buscandoAcompanhamento)return;buscandoAcompanhamento=true;const prof=usuario.uid,lista=alunos.slice();$('pAcompanhamentoStatus').textContent='Consultando atividade e publicação dos planos…';let errors=0;
+ try{const fb=await getFB();let next=0;async function worker(){while(next<lista.length){const aluno=lista[next++];if(!usuario||usuario.uid!==prof||!profissional())return;const results=await Promise.allSettled([fb.F.getDoc(fb.F.doc(fb.db,'usuarios',aluno.uid)),fb.F.getDoc(fb.F.doc(fb.db,'planosProfessor',aluno.uid))]);if(!usuario||usuario.uid!==prof||!profissional())return;const [activity,plan]=results;const info={};if(activity.status==='fulfilled'){const data=activity.value.exists()?activity.value.data():{};info.ultima=window.TendaEvolucao.summary(data).days.at(-1)||null}else{info.erro=true;errors++}if(plan.status==='fulfilled'){info.temPlano=plan.value.exists();info.publicado=info.temPlano?plan.value.data().atualizadoEm:null}else info.erroPlano=true;acompanhamento[aluno.uid]=info;} }
+ await Promise.all(Array.from({length:Math.min(4,lista.length)},worker));if(usuario?.uid===prof&&profissional()){$('pAcompanhamentoStatus').textContent=errors?'Algumas atividades não puderam ser consultadas. Use Atualizar lista para tentar novamente.':'Atividade consultada às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'. Sem registro não significa ausência no ginásio.';desenharAlunos();}}
+ catch(e){if(usuario?.uid===prof)$('pAcompanhamentoStatus').textContent='Acompanhamento indisponível. Tente atualizar a lista.';}finally{buscandoAcompanhamento=false;}
+}
 async function abrirAluno(a){
  if(carregando||salvando||!sairSeguro())return;carregando=true;selecionado=a;$('pResumoAluno').textContent=a.nome||a.email||'Aluno';plano=null;modificado=false;desenharAlunos();$('pEditor').hidden=true;$('pVazio').hidden=false;$('pVazio').textContent='Carregando planos de '+(a.nome||a.email)+'…';mensagem('Carregando…');
  try{
   const fb=await getFB();const ref=fb.F.doc(fb.db,'planosProfessor',a.uid);let planoSnap=null,regraPendente=false;
   try{planoSnap=await fb.F.getDoc(ref)}catch(e){if(e.code==='permission-denied')regraPendente=true;else throw e}
-  const user=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',a.uid));const c=user.exists()?user.data():{};if(!profissional())return;evolucaoAluno=clonar(c);
-  const publicado=planoSnap&&planoSnap.exists()?planoSnap.data():null;basePlano=publicado?publicado.revisao:null;plano=normalizar(publicado);
+  const user=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',a.uid));const c=user.exists()?user.data():{};if(!profissional()||!selecionado||selecionado.uid!==a.uid)return;evolucaoAluno=clonar(c);
+  const publicado=planoSnap&&planoSnap.exists()?planoSnap.data():null;$('pPlanoData').textContent=regraPendente?'Publicação não consultada':publicado?'Última publicação: '+(dataPlano(publicado.atualizadoEm)||'data indisponível'):'Nenhum plano publicado ainda';basePlano=publicado?publicado.revisao:null;plano=normalizar(publicado);
   // Os exercícios atuais do aluno prevalecem sobre uma cópia antiga do plano.
   if(c.treinos&&Object.keys(c.treinos).length)plano.treinos=clonar(c.treinos);if(c.nomes)Object.assign(plano.nomes,c.nomes);
   for(const [t,arr] of Object.entries(plano.treinos))if(arr[0]&&arr[0].treinoNome)plano.nomes[t]=arr[0].treinoNome;
@@ -56,7 +63,7 @@ function deselecionarAluno(){
  $('pEditor').hidden=true;$('pVazio').hidden=false;
  $('pVazio').textContent='Selecione um aluno na lista para consultar sua evolução e preparar seu plano.';
  $('pResumoAluno').textContent='Nenhum';$('pResumoPlano').textContent='Selecione um aluno';
- $('pAlunoNome').textContent='';$('pAlunoEmail').textContent='';$('pEvolucaoStatus').textContent='';
+ $('pAlunoNome').textContent='';$('pAlunoEmail').textContent='';$('pPlanoData').textContent='';$('pEvolucaoStatus').textContent='';
  for(const id of ['pEvolucaoAluno','pFicha','pTreinos','pInfoAlimentar','pRefeicoes','pPrevia'])$(id).replaceChildren();
  desenharAlunos();mensagem(guardado?'Rascunho de '+nome+' guardado neste navegador. Selecione um aluno para continuar.':'Selecione um aluno para continuar.');
  $('profBusca').focus({preventScroll:true});$('profBusca').scrollIntoView({block:'nearest',behavior:'smooth'});
@@ -92,7 +99,7 @@ async function publicar(){
  salvando=true;$('pEditor').inert=true;$('pPublicar').disabled=true;const alunoUid=selecionado.uid,profUid=usuario.uid;out.uid=alunoUid;out.professorUid=profUid;out.alunoNome=selecionado.nome||'';out.atualizadoEm=Date.now();out.revisao=id();const expected=basePlano;mensagem('Publicando…');
  try{const fb=await getFB();const ref=fb.F.doc(fb.db,'planosProfessor',alunoUid),uref=fb.F.doc(fb.db,'usuarios',alunoUid);
  await fb.F.runTransaction(fb.db,async tx=>{const ps=await tx.get(ref),us=await tx.get(uref);if((ps.exists()?ps.data().revisao:null)!==expected)throw Error('Outro profissional atualizou o plano. Reabra o aluno antes de publicar.');if(!usuario||usuario.uid!==profUid)throw Error('A conta mudou. Entre novamente.');tx.set(ref,out);const patch={treinos:out.treinos};if(us.exists())tx.update(uref,patch);else tx.set(uref,patch)});
- basePlano=out.revisao;plano=normalizar(out);modificado=false;try{localStorage.removeItem(chaveRascunho(alunoUid))}catch(e){};mensagem('Publicado. O aluno pode abrir a aba Meus planos e atualizar seus treinos.');
+ basePlano=out.revisao;plano=normalizar(out);$('pPlanoData').textContent='Última publicação: '+dataPlano(out.atualizadoEm);if(acompanhamento[alunoUid]){acompanhamento[alunoUid].publicado=out.atualizadoEm;acompanhamento[alunoUid].temPlano=true;acompanhamento[alunoUid].erroPlano=false;desenharAlunos();}modificado=false;try{localStorage.removeItem(chaveRascunho(alunoUid))}catch(e){};mensagem('Publicado. O aluno pode abrir a aba Meus planos e atualizar seus treinos.');
  }catch(e){mensagem(e.code==='permission-denied'?'Não publicado: as novas regras do Firestore ainda precisam ser ativadas. Seu rascunho foi mantido.':'Não publicado: '+(e.code||e.message),true)}finally{salvando=false;$('pEditor').inert=false;$('pPublicar').disabled=false}
 }
 async function publicarSomenteTreinos(){
@@ -113,6 +120,7 @@ window.addEventListener('beforeunload',e=>{if(modificado){e.preventDefault();e.r
 // O painel novo substitui o modal antigo, mantendo o fluxo de permissões existente.
 abrirPainelProfessor=function(){if(!profissional())return;document.getElementById('modalPerfil').hidden=true;$('modalProfessor').hidden=false;if(!selecionado){$('pEditor').hidden=true;$('pVazio').hidden=false}listaAlunos()};
 $('profBusca').oninput=desenharAlunos;
+$('pFiltroAtividade').onchange=desenharAlunos;
 $('pVoltarAlunos').onclick=deselecionarAluno;
 $('btnFecharProf').onclick=()=>{if(!salvando&&sairSeguro())$('modalProfessor').hidden=true};
 // Evita fechar e perder contexto ao clicar fora do painel.
@@ -127,7 +135,7 @@ $('pImprimir').onclick=()=>{desenharPrevia($('pPrevia'),plano,selecionado.nome||
 $('pExportar').onclick=()=>{if(!plano)return;const blob=new Blob([JSON.stringify({formato:'tenda-plano-professor',plano},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download='plano-aluno.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 const oldCargo=atualizarCargoPerfil;atualizarCargoPerfil=function(){oldCargo();$('pAcesso').hidden=!profissional()};
 $('pAcesso').onclick=abrirPainelProfessor;
-const oldConta=atualizaBotaoConta;atualizaBotaoConta=function(){oldConta();$('pAcesso').hidden=!profissional();$('irPlanos').hidden=!usuario;if(!usuario){$('viewPlanos').hidden=true;$('alunoPlano').replaceChildren();selecionado=null;plano=null;modificado=false;evolucaoAluno={};$('pEvolucaoAluno').replaceChildren();$('modalProfessor').hidden=true}};
+const oldConta=atualizaBotaoConta;atualizaBotaoConta=function(){oldConta();$('pAcesso').hidden=!profissional();$('irPlanos').hidden=!usuario;if(!usuario){$('viewPlanos').hidden=true;$('alunoPlano').replaceChildren();selecionado=null;plano=null;modificado=false;evolucaoAluno={};acompanhamento={};$('pEvolucaoAluno').replaceChildren();$('pPlanoData').textContent='';$('modalProfessor').hidden=true}};
 const nomeAnterior=nomeDo;nomeDo=function(t){const first=dados&&dados.treinos&&dados.treinos[t]&&dados.treinos[t][0];return first&&first.treinoNome?first.treinoNome:nomeAnterior(t)};
 const vistaAnterior=mudarVista;mudarVista=function(v){$('viewPlanos').hidden=true;$('irPlanos').classList.remove('selecionado');$('irPlanos').setAttribute('aria-pressed','false');vistaAnterior(v)};
 let buscandoPlano=false;
@@ -138,5 +146,3 @@ async function verPlanos(){if(buscandoPlano)return;if(!usuario){abrirLogin();ret
 $('irPlanos').onclick=verPlanos;$('pAlunoAtualizar').onclick=verPlanos;$('pAlunoImprimir').onclick=()=>imprimir($('alunoPlano'));
 atualizaBotaoConta();
 })();
-
-
