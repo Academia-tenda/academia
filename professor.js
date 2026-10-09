@@ -1,7 +1,7 @@
 /* Academia Tenda: editor de planos do professor e consulta do aluno. */
 (function(){
 'use strict';
-let alunos=[],selecionado=null,plano=null,basePlano=null,carregando=false,salvando=false,modificado=false;
+let alunos=[],selecionado=null,plano=null,basePlano=null,carregando=false,salvando=false,modificado=false,evolucaoAluno={},atualizandoEvolucao=false;
 const $=id=>document.getElementById(id);
 const clonar=x=>JSON.parse(JSON.stringify(x));
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
@@ -34,13 +34,13 @@ async function abrirAluno(a){
  try{
   const fb=await getFB();const ref=fb.F.doc(fb.db,'planosProfessor',a.uid);let planoSnap=null,regraPendente=false;
   try{planoSnap=await fb.F.getDoc(ref)}catch(e){if(e.code==='permission-denied')regraPendente=true;else throw e}
-  const user=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',a.uid));const c=user.exists()?user.data():{};
+  const user=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',a.uid));const c=user.exists()?user.data():{};if(!profissional())return;evolucaoAluno=clonar(c);
   const publicado=planoSnap&&planoSnap.exists()?planoSnap.data():null;basePlano=publicado?publicado.revisao:null;plano=normalizar(publicado);
   // Os exercícios atuais do aluno prevalecem sobre uma cópia antiga do plano.
   if(c.treinos&&Object.keys(c.treinos).length)plano.treinos=clonar(c.treinos);if(c.nomes)Object.assign(plano.nomes,c.nomes);
   for(const [t,arr] of Object.entries(plano.treinos))if(arr[0]&&arr[0].treinoNome)plano.nomes[t]=arr[0].treinoNome;
   const draft=localStorage.getItem(chaveRascunho(a.uid));if(draft&&confirm('Existe um rascunho salvo para este aluno. Recuperar?')){plano=normalizar(JSON.parse(draft));modificado=true}
-  $('pAlunoNome').textContent=a.nome||a.email||'Aluno';$('pAlunoEmail').textContent=a.email||'';$('pVazio').hidden=true;$('pEditor').hidden=false;desenharFicha();desenharTreinos();desenharRefeicoes();aba('treino');
+  $('pAlunoNome').textContent=a.nome||a.email||'Aluno';$('pAlunoEmail').textContent=a.email||'';$('pVazio').hidden=true;$('pEditor').hidden=false;desenharFicha();desenharTreinos();desenharRefeicoes();desenharEvolucaoAluno();aba('evolucao');
   mensagem(regraPendente?'Treinos disponíveis. Para publicar a ficha e o plano alimentar, é necessário publicar as novas regras do Firestore. O rascunho pode ser preparado aqui.':modificado?'Rascunho recuperado. Ainda não publicado.':'Alterações chegam ao aluno após a publicação.',regraPendente);
  }catch(e){$('pVazio').textContent='Não foi possível abrir o aluno. Tente novamente.';mensagem('Erro ao carregar ('+(e.code||e.message)+').',true)}finally{carregando=false}
 }
@@ -55,7 +55,18 @@ function desenharRefeicoes(){resumoEditor();const root=$('pRefeicoes');root.repl
  plano.alimentar.refeicoes.forEach((r,i)=>{const card=node('section','p-treino');const row=node('div','p-card-head');row.append(node('span','p-letra',i+1),campo('Refeição',r.nome,v=>{r.nome=v;mudou()}),campo('Horário',r.horario,v=>{r.horario=v;mudou()}),botao('Remover',()=>{plano.alimentar.refeicoes.splice(i,1);mudou();desenharRefeicoes()},'btn warn'));card.append(row,campo('Alimentos e quantidades — um item por linha',r.itens,v=>{r.itens=v;mudou()},true),campo('Substituições e observações',r.observacoes,v=>{r.observacoes=v;mudou()},true));root.append(card)});
  if(!plano.alimentar.refeicoes.length)root.append(node('p','p-vazio','Nenhuma refeição neste plano. Use Adicionar refeição para começar.'));
 }
-function aba(a){resumoEditor();for(const k of ['treino','ficha','alimentar','previa']){$('pTab-'+k).hidden=k!==a;$('pBtn-'+k).classList.toggle('acc',k===a);$('pBtn-'+k).setAttribute('aria-pressed',String(k===a))}if(a==='previa')desenharPrevia($('pPrevia'),plano,selecionado.nome||selecionado.email)}
+
+function desenharEvolucaoAluno(){if(window.TendaEvolucao)window.TendaEvolucao.render($('pEvolucaoAluno'),evolucaoAluno);$('pEvolucaoStatus').textContent='Consulta atualizada às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+async function atualizarEvolucaoAluno(){
+ if(!profissional()||!selecionado||atualizandoEvolucao)return;const uid=selecionado.uid,prof=usuario.uid;
+ atualizandoEvolucao=true;$('pAtualizarEvolucao').disabled=true;$('pEvolucaoStatus').textContent='Buscando registros…';
+ try{const fb=await getFB(),s=await fb.F.getDoc(fb.F.doc(fb.db,'usuarios',uid));if(!usuario||usuario.uid!==prof||!selecionado||selecionado.uid!==uid||!profissional())return;evolucaoAluno=s.exists()?clonar(s.data()):{};desenharEvolucaoAluno();$('pEvolucaoStatus').textContent='Consulta atualizada às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+ catch(e){if(selecionado&&selecionado.uid===uid)$('pEvolucaoStatus').textContent='Não foi possível atualizar. Os dados anteriores foram mantidos.'}
+ finally{atualizandoEvolucao=false;$('pAtualizarEvolucao').disabled=false}
+}
+$('pAtualizarEvolucao').onclick=atualizarEvolucaoAluno;
+
+function aba(a){resumoEditor();document.querySelector('.p-publish-bar').hidden=a==='evolucao';$('pRascunhoNota').hidden=a==='evolucao';for(const k of ['evolucao','treino','ficha','alimentar','previa']){$('pTab-'+k).hidden=k!==a;$('pBtn-'+k).classList.toggle('acc',k===a);$('pBtn-'+k).setAttribute('aria-pressed',String(k===a))}if(a==='previa')desenharPrevia($('pPrevia'),plano,selecionado.nome||selecionado.email)}
 function montarConteudo(){const out=normalizar(plano);let count=0;for(const [t,arr] of Object.entries(out.treinos)){out.treinos[t]=arr.filter(e=>String(e.nome||'').trim()).map(e=>({...e,nome:limitar(e.nome,160),series:limitar(e.series,20),reps:limitar(e.reps,40),descanso:limitar(e.descanso,80),treinoNome:limitar(out.nomes[t]||'Treino '+t,100)}));count+=out.treinos[t].length}out.alimentar.refeicoes=out.alimentar.refeicoes.filter(r=>String(r.nome||'').trim()||String(r.itens||'').trim());if(!count&&!out.alimentar.refeicoes.length)throw Error('Adicione ao menos um exercício ou uma refeição.');return out}
 async function publicar(){
  if(!profissional()||!selecionado||!plano||salvando)return;
@@ -93,12 +104,12 @@ $('pAdicionarTreino').onclick=()=>{const t=proxima();plano.treinos[t]=[];plano.n
 $('pAdicionarRefeicao').onclick=()=>{plano.alimentar.refeicoes.push({nome:'',horario:'',itens:'',observacoes:''});mudou();desenharRefeicoes()};
 $('pPublicar').onclick=publicar;$('pSoTreino').onclick=publicarSomenteTreinos;
 $('pCopiarMeus').onclick=()=>{if(confirm('Copiar seus treinos para o rascunho deste aluno?')){plano.treinos=clonar(dados.treinos);plano.nomes=clonar(dados.nomes||{});mudou();desenharTreinos()}};
-for(const k of ['treino','ficha','alimentar','previa'])$('pBtn-'+k).onclick=()=>aba(k);
+for(const k of ['evolucao','treino','ficha','alimentar','previa'])$('pBtn-'+k).onclick=()=>aba(k);
 $('pImprimir').onclick=()=>{desenharPrevia($('pPrevia'),plano,selecionado.nome||selecionado.email);imprimir($('pPrevia'))};
 $('pExportar').onclick=()=>{if(!plano)return;const blob=new Blob([JSON.stringify({formato:'tenda-plano-professor',plano},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download='plano-aluno.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 const oldCargo=atualizarCargoPerfil;atualizarCargoPerfil=function(){oldCargo();$('pAcesso').hidden=!profissional()};
 $('pAcesso').onclick=abrirPainelProfessor;
-const oldConta=atualizaBotaoConta;atualizaBotaoConta=function(){oldConta();$('pAcesso').hidden=!profissional();$('irPlanos').hidden=!usuario;if(!usuario){$('viewPlanos').hidden=true;$('alunoPlano').replaceChildren();selecionado=null;plano=null;modificado=false;$('modalProfessor').hidden=true}};
+const oldConta=atualizaBotaoConta;atualizaBotaoConta=function(){oldConta();$('pAcesso').hidden=!profissional();$('irPlanos').hidden=!usuario;if(!usuario){$('viewPlanos').hidden=true;$('alunoPlano').replaceChildren();selecionado=null;plano=null;modificado=false;evolucaoAluno={};$('pEvolucaoAluno').replaceChildren();$('modalProfessor').hidden=true}};
 const nomeAnterior=nomeDo;nomeDo=function(t){const first=dados&&dados.treinos&&dados.treinos[t]&&dados.treinos[t][0];return first&&first.treinoNome?first.treinoNome:nomeAnterior(t)};
 const vistaAnterior=mudarVista;mudarVista=function(v){$('viewPlanos').hidden=true;$('irPlanos').classList.remove('selecionado');$('irPlanos').setAttribute('aria-pressed','false');vistaAnterior(v)};
 let buscandoPlano=false;

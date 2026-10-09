@@ -1,0 +1,34 @@
+/* Consulta de evolução: usa somente os registros reais do aluno. */
+(function(){
+'use strict';
+const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
+const dateLabel=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+const num=v=>Number(v).toLocaleString('pt-BR',{maximumFractionDigits:1});
+function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function validDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(new Date(d+'T12:00:00').getTime())&&dateKey(new Date(d+'T12:00:00'))===d}
+function summary(data,today){
+ const d=data||{},end=today||dateKey(new Date()),start=new Date(end+'T12:00:00');start.setDate(start.getDate()-29);const from=dateKey(start);start.setDate(start.getDate()-30);const previous=dateKey(start);
+ const days=[...new Set([...Object.keys(d.progresso||{}),...Object.keys(d.concluidos||{})])].filter(x=>validDate(x)&&x<=end&&(Object.values((d.progresso||{})[x]||{}).some(a=>Array.isArray(a)&&a.length)||Object.values((d.concluidos||{})[x]||{}).some(v=>v==='manual'))).sort();
+ const current=days.filter(x=>x>=from),before=days.filter(x=>x>=previous&&x<from);let completed=0;
+ for(const [day,tr]of Object.entries(d.concluidos||{}))if(day>=from&&day<=end)completed+=Object.values(tr||{}).filter(v=>v==='manual').length;
+ const loads=Object.entries(d.pesos||{}).map(([id,raw])=>{const r=raw||{};const byDate=new Map();for(const h of (Array.isArray(r.hist)?r.hist:[])){if(!validDate(h.d)||h.d>end)continue;const values=(Array.isArray(h.ps)?h.ps:[h.p]).filter(v=>v!=null&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0).map(Number);if(values.length)byDate.set(h.d,Math.max(byDate.get(h.d)||0,...values))}return{id,nome:r.nome||Object.values(d.treinos||{}).flat().find(e=>e.id===id)?.nome||'Exercício registrado',points:[...byDate].sort(([a],[b])=>a.localeCompare(b)).map(([date,value])=>({date,value}))}}).filter(x=>x.points.length).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+ const weight=Object.entries((d.medidas||{}).pesos||{}).filter(([day,v])=>validDate(day)&&day<=end&&v!==''&&v!=null&&Number.isFinite(Number(v))&&Number(v)>0).sort(([a],[b])=>a.localeCompare(b)).map(([date,value])=>({date,value:Number(value)}));
+ return{end,from,days,current,before,completed,loads,weight};
+}
+function metric(label,value,detail){const c=node('div','pe-metric');c.append(node('span','',label),node('strong','',value));if(detail)c.append(node('small','',detail));return c}
+function chart(root,points,unit){const peak=Math.max(1,...points.map(p=>p.value));const list=node('div','pe-chart');list.setAttribute('role','list');list.setAttribute('aria-label','Registros por data');for(const p of points.slice(-12)){const row=node('div','pe-point');row.setAttribute('role','listitem');const bar=node('span','pe-bar');const fill=node('i');fill.style.width=(p.value/peak*100)+'%';bar.setAttribute('aria-hidden','true');bar.append(fill);row.append(node('span','',dateLabel(p.date)),bar,node('strong','',num(p.value)+' '+unit));list.append(row)}root.append(list)}
+function render(root,data,today){
+ root.replaceChildren();const d=data||{},s=summary(d,today),grid=node('div','pe-metrics');grid.append(metric('Dias com atividade',s.current.length,'Últimos 30 dias'),metric('Treinos concluídos',s.completed,'Conclusões registradas em 30 dias'),metric('Última atividade',s.days.length?dateLabel(s.days.at(-1)):'Sem registro'),metric('Exercícios com cargas',s.loads.length,'Histórico disponível'));root.append(grid);
+ const compare=s.current.length-s.before.length;root.append(node('p','pe-comparison',s.current.length+' dias com atividade nos últimos 30 dias e '+s.before.length+' nos 30 dias anteriores'+(compare?' ('+(compare>0?'+':'')+compare+' dias).':'.')));
+ const charges=node('section','pe-section');charges.append(node('h3','','Evolução das cargas'),node('p','small-note','Maior carga registrada em cada dia. Compare junto com as séries e repetições do plano.'));
+ if(!s.loads.length)charges.append(node('p','pe-empty','O aluno ainda não registrou cargas. Os registros aparecerão aqui após a sincronização.'));
+ else{const label=node('label','p-campo');label.append(node('span','','Exercício'));const select=node('select');select.setAttribute('aria-label','Exercício para acompanhar');s.loads.forEach((ex,i)=>{const opt=node('option','',ex.nome);opt.value=String(i);select.append(opt)});label.append(select);const body=node('div');function show(){body.replaceChildren();const p=s.loads[Number(select.value)||0].points,first=p[0],last=p.at(-1),delta=last.value-first.value;body.append(node('div','pe-load-summary',num(first.value)+' kg → '+num(last.value)+' kg'+(p.length>1?' · '+(delta>0?'+':'')+num(delta)+' kg':' · Primeiro registro')));chart(body,p,'kg');if(p.length>12)body.append(node('p','small-note','Exibindo os 12 registros mais recentes. A comparação considera todo o histórico.'))}select.onchange=show;charges.append(label,body);show()}root.append(charges);
+ const weight=node('section','pe-section');weight.append(node('h3','','Peso corporal'),node('p','small-note','Medidas registradas pelo aluno. A interpretação depende do objetivo definido no plano.'));
+ if(!s.weight.length)weight.append(node('p','pe-empty','Nenhuma medida de peso registrada.'));else chart(weight,s.weight,'kg');if(d.medidas&&d.medidas.altura)weight.append(node('p','small-note','Altura informada: '+d.medidas.altura+' cm'));root.append(weight);
+ const activity=node('section','pe-section');activity.append(node('h3','','Atividade recente'));
+ if(!s.days.length)activity.append(node('p','pe-empty','Nenhuma atividade registrada. Este painel será preenchido conforme o aluno usar o aplicativo.'));
+ for(const day of s.days.slice(-10).reverse()){const row=node('div','pe-activity');row.append(node('strong','',dateLabel(day)));const entries=[...new Set([...Object.keys((d.progresso||{})[day]||{}),...Object.keys((d.concluidos||{})[day]||{})])];for(const t of entries){const ids=((d.progresso||{})[day]||{})[t],count=Array.isArray(ids)?ids.length:0,done=((d.concluidos||{})[day]||{})[t]==='manual';if(!count&&!done)continue;const name=(d.nomes||{})[t]||(d.treinos||{})[t]?.[0]?.treinoNome||'Treino '+t;row.append(node('span','',name+' · '+(done?'Concluído':'Atividade registrada')+' · '+count+' exercício'+(count===1?'':'s')+' marcado'+(count===1?'':'s')))}activity.append(row)}root.append(activity);
+ return s;
+}
+window.TendaEvolucao={summary,render};
+})();
