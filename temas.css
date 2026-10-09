@@ -254,3 +254,47 @@ body.sem-treinos:not(.editando) .welcome{display:none!important}
 .reveal.animar.revelado{opacity:1;transform:none}
 @media(max-width:760px){:is(body,body.noite) .visual-hero{grid-template-columns:1fr;gap:24px;margin:20px 20px 48px}:is(body,body.noite) .hero-copy{padding:10px 0}:is(body,body.noite) .visual-hero h2{font-size:42px;letter-spacing:-1.6px}:is(body,body.noite) .hero-media{min-height:380px;max-width:520px;padding-bottom:24px}:is(body,body.noite) .hero-media>img{height:330px}:is(body,body.noite) .app-preview{left:16px;width:84%;padding:20px}:is(body,body.noite) .landing-story{margin:0 20px 24px}:is(body,body.noite) .story-heading{grid-template-columns:1fr;padding:28px 0}:is(body,body.noite) .story-heading h2{font-size:30px;margin-bottom:0}:is(body,body.noite) .story-grid{grid-template-columns:1fr;gap:32px}:is(body,body.noite) .story-grid p{min-height:0}:is(body,body.noite) .story-visual{margin-top:18px}:is(body,body.noite) .landing-faq{margin-top:40px}}
 @media(prefers-reduced-motion:reduce){.reveal.animar{opacity:1;transform:none}.rotina-card:hover{transform:none!important}}
+
+/* Student dashboard and session feedback. */
+body.aluno-com-treinos .welcome{display:none!important}
+:is(body,body.noite) .aluno-resumo{display:grid;grid-template-columns:1.1fr 1fr;margin:32px;border-radius:18px;overflow:hidden;background:var(--superficie);border:1px solid var(--linha)}
+:is(body,body.noite) .aluno-boasvindas{padding:36px;align-self:center}
+:is(body,body.noite) .aluno-boasvindas .eyebrow{color:var(--acento)}
+:is(body,body.noite) .aluno-boasvindas h2{font-size:34px;line-height:1.13;letter-spacing:-1px;font-weight:650;margin:16px 0;max-width:360px;text-wrap:balance}
+:is(body,body.noite) .aluno-boasvindas p{color:var(--secundario);font-size:13px;line-height:1.7;max-width:360px;margin-bottom:24px}
+:is(body,body.noite) .aluno-boasvindas .btn{background:transparent;border-color:var(--linha);font-size:12px}
+:is(body,body.noite) .aluno-resumo-visual{position:relative;min-height:290px;background:#26382c}
+:is(body,body.noite) .aluno-resumo-visual>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;filter:brightness(.7) saturate(.65)}
+:is(body,body.noite) .aluno-semana-mini{position:absolute;bottom:24px;left:24px;right:24px;padding:18px;background:#19271ed9;border:1px solid #ffffff26;border-radius:12px;backdrop-filter:blur(8px);color:#fff}
+:is(body,body.noite) .mini-semana-titulo{font-size:9px;letter-spacing:1.6px}
+:is(body,body.noite) .mini-semana-dias{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+:is(body,body.noite) .mini-semana-dias>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff14;font-size:11px;color:#d9e4d5}
+:is(body,body.noite) .mini-semana-dias>span.ativo{background:#d9e4d5;color:#26382c}
+:is(body,body.noite) .biblioteca-cabecalho{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:36px 32px 20px}
+:is(body,body.noite) .biblioteca-cabecalho h2{font-size:22px;font-weight:650;letter-spacing:-.5px;margin:0 0 6px}
+:is(body,body.noite) .biblioteca-cabecalho p{margin:0;color:var(--secundario);font-size:12px}
+:is(body,body.noite) #bibliotecaQuantidade{font-size:11px;background:var(--campo);color:var(--secundario);padding:6px 10px;border-radius:20px;white-space:nowrap}
+:is(body,body.noite) .rotinas,:is(body,body.noite) .rotinas:has(>.rotina-card:only-child){max-width:none;grid-template-columns:repeat(2,minmax(0,1fr))}
+:is(body,body.noite) .rotina-card{padding:24px;gap:14px;position:relative;overflow:hidden}
+:is(body,body.noite) .rotina-capa{height:150px;margin:-24px -24px 8px;flex-basis:calc(100% + 48px);border-radius:0;background:linear-gradient(135deg,var(--campo),var(--superficie));padding:16px}
+:is(body,body.noite) .rotina-capa img{height:100%;width:100%;object-fit:contain;mix-blend-mode:multiply;filter:grayscale(1);transition:transform .25s ease}
+body.noite .rotina-capa img{mix-blend-mode:normal;border-radius:8px;max-width:180px;display:block;margin:auto}
+:is(body,body.noite) .rotina-card:hover .rotina-capa img{transform:scale(1.04)}
+:is(body,body.noite) .rotina-conteudo small{margin-top:10px}
+:is(body,body.noite) .rotina-status{font-size:10px;color:var(--secundario);flex-basis:100%;margin-top:8px}
+:is(body,body.noite) .rotina-status.completo{color:var(--acento);font-weight:600}
+:is(body,body.noite) .rotina-progresso{flex-basis:100%;height:3px;border-radius:3px;background:var(--linha);overflow:hidden}
+:is(body,body.noite) .rotina-progresso i{display:block;height:100%;background:var(--ativo);transition:width .25s ease}
+:is(body,body.noite) .rotina-abrir{border:0;margin:0;padding-top:6px}
+body.aluno-com-treinos.modo-biblioteca .week-card{display:none!important}
+:is(body,body.noite) .item{transition:border-color .2s,background .2s}
+:is(body,body.noite) .item .check{transition:background .18s,border-color .18s,transform .18s}
+:is(body,body.noite) .item .check:active{transform:scale(.88)}
+:is(body,body.noite) .sp{transition:border-color .15s,box-shadow .15s}
+:is(body,body.noite) .sp:focus-within{box-shadow:0 0 0 2px var(--suave)}
+body:not(.modo-biblioteca):not(.editando) .progresso{position:sticky;top:84px;z-index:9;background:var(--fundo);padding:16px 0;margin-top:0}
+body:not(.modo-biblioteca):not(.editando) .progresso .nomeTreino{font-size:24px;margin-bottom:12px}
+:is(body,body.noite) #viewEvolucao .secao{animation:aluno-aparecer .25s ease both}
+@keyframes aluno-aparecer{from{opacity:.6;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(max-width:760px){:is(body,body.noite) .aluno-resumo{margin:24px 20px;grid-template-columns:1fr}:is(body,body.noite) .aluno-boasvindas{padding:26px}:is(body,body.noite) .aluno-boasvindas h2{font-size:29px;max-width:330px}:is(body,body.noite) .aluno-resumo-visual{min-height:180px}:is(body,body.noite) .aluno-semana-mini{bottom:18px;left:20px;right:20px;padding:14px 18px}:is(body,body.noite) .biblioteca-cabecalho{margin:28px 20px 18px}:is(body,body.noite) .rotinas,:is(body,body.noite) .rotinas:has(>.rotina-card:only-child){grid-template-columns:1fr}:is(body,body.noite) .rotina-card{padding:20px}:is(body,body.noite) .rotina-capa{height:135px;margin:-20px -20px 8px;flex-basis:calc(100% + 40px)}body:not(.modo-biblioteca):not(.editando) .progresso{top:68px;padding:14px 0}}
+@media(prefers-reduced-motion:reduce){.rotina-card:hover .rotina-capa img{transform:none!important}#viewEvolucao .secao{animation:none!important}}

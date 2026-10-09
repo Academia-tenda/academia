@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=11">
+<link rel="stylesheet" href="temas.css?v=12">
 </head>
 <body>
 <header>
@@ -353,6 +353,8 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <div class="landing-faq reveal"><h2>Antes de começar</h2><details><summary>Posso criar meu próprio treino?</summary><p>Sim. Use “Criar meu treino” e adicione seus exercícios. No modo Editar, você pode alterar nomes, séries, repetições e ordem.</p></details><details><summary>Como recebo um plano do professor?</summary><p>Entre na sua conta e abra “Meus planos”. Os planos aparecem quando o professor os publica para você.</p></details><details><summary>Como acompanho meu progresso?</summary><p>Marque os exercícios realizados e registre suas cargas. A seção Evolução reúne seu calendário e histórico.</p></details></div>
 <footer class="landing-footer"><span>ACADEMIA TENDA</span><span>Um treino de cada vez.</span><a href="https://www.pexels.com/photo/dumbbells-in-close-up-photography-6389886/" target="_blank" rel="noopener noreferrer">Foto: Tima Miroshnichenko / Pexels</a></footer>
 </section>
+<section class="aluno-resumo" id="alunoResumo" hidden aria-label="Resumo da sua rotina"><div class="aluno-boasvindas"><span class="eyebrow">SUA ROTINA</span><h2 id="alunoSaudacao">Vamos treinar?</h2><p id="alunoResumoTexto"></p><button class="btn" id="alunoVerEvolucao" type="button">Ver minha evolução ↗</button></div><div class="aluno-resumo-visual"><img src="img/tenda-gym.jpg" alt="" width="1000" height="667"><div class="aluno-semana-mini" id="alunoSemanaMini"></div></div></section>
+<div class="biblioteca-cabecalho" id="bibliotecaCabecalho" hidden><div><h2>Seus treinos</h2><p>Escolha sua rotina e registre cada etapa.</p></div><span id="bibliotecaQuantidade"></span></div>
 <section id="bibliotecaTreinos" class="rotinas" aria-label="Escolher treino"></section>
 <div class="sessao-top" id="sessaoTop" hidden><button class="btn" id="voltarRotinas" type="button">← Todos os treinos</button><span class="small-note">Registro de hoje</span></div>
 <section class="week-card" aria-label="Atividade nesta semana"><div class="week-top"><strong>Sua semana</strong><span id="weekSummary">0 dias com atividade</span></div><div class="week-days" id="weekDays"></div></section>
@@ -1704,6 +1706,22 @@ if(temConfig()){
   const overview=!sessao&&!editando;
   document.body.classList.toggle('modo-biblioteca',overview);
   biblioteca.hidden=!overview||!tem;
+  document.body.classList.toggle('aluno-com-treinos',tem);
+  document.getElementById('alunoResumo').hidden=!overview||!tem;
+  document.getElementById('bibliotecaCabecalho').hidden=!overview||!tem;
+  if(overview&&tem){
+   const nome=usuario&&usuario.displayName?usuario.displayName.trim().split(' ')[0]:'';
+   document.getElementById('alunoSaudacao').textContent=nome?'Sua rotina, '+nome+'.':'Seu próximo treino começa aqui.';
+   const dias=diasComTreino().length;
+   document.getElementById('alunoResumoTexto').textContent=dias?dias+(dias===1?' dia com atividade registrada.':' dias com atividade registrada.')+' Continue acompanhando seu progresso.':'Seus treinos estão prontos. Escolha uma rotina para começar.';
+   const n=keys.filter(t=>dados.treinos[t].some(e=>String(e.nome||'').trim())).length;
+   document.getElementById('bibliotecaQuantidade').textContent=n+(n===1?' rotina':' rotinas');
+   const mini=document.getElementById('alunoSemanaMini');mini.replaceChildren();
+   const title=document.createElement('span');title.className='mini-semana-titulo';title.textContent='ÚLTIMOS 7 DIAS';mini.appendChild(title);
+   const days=document.createElement('div');days.className='mini-semana-dias';
+   for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const cell=document.createElement('span');const ativo=diaAtivo(dataISO(d));cell.className=ativo?'ativo':'';cell.textContent=d.toLocaleDateString('pt-BR',{weekday:'short'}).slice(0,1).toUpperCase();cell.title=fmtData(dataISO(d))+(ativo?' · atividade registrada':' · sem atividade registrada');days.appendChild(cell)}
+   mini.appendChild(days);
+  }
   document.getElementById('sessaoTop').hidden=overview||editando;
   backupGuest.hidden=!!usuario||editando;
   tools.hidden=overview||editando||!itens().length;
@@ -1717,10 +1735,15 @@ if(temConfig()){
    const meta=document.createElement('span');meta.className='rotina-meta';meta.textContent=exs.length+(exs.length===1?' exercício · ':' exercícios · ')+exs.reduce((n,e)=>n+nSeriesDe(e),0)+' séries';
    const preview=document.createElement('small');preview.textContent=exs.slice(0,3).map(e=>e.nome).join(' · ')+(exs.length>3?'…':'');
    text.append(name,meta,preview);
-   const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent='Abrir treino →';
-   const cover=document.createElement('div');cover.className='rotina-capa';const src=exs.map(imgDe).find(Boolean);if(src){const im=document.createElement('img');im.src=src;im.alt='';im.loading='lazy';im.onerror=()=>cover.remove();cover.appendChild(im);card.appendChild(cover)}card.append(label,text,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
+   const marcados=(dados.progresso[hoje()]&&dados.progresso[hoje()][t])||[];
+   const count=exs.filter(e=>marcados.includes(e.id)).length;
+   const status=document.createElement('span');status.className='rotina-status'+(count===exs.length?' completo':'');status.textContent=count===exs.length?'Concluído hoje':count?count+' de '+exs.length+' hoje':'Pronto para treinar';
+   const progress=document.createElement('span');progress.className='rotina-progresso';progress.setAttribute('aria-hidden','true');const fill=document.createElement('i');fill.style.width=(count/exs.length*100)+'%';progress.appendChild(fill);
+   const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent=count&&count<exs.length?'Continuar treino →':'Abrir treino →';
+   const cover=document.createElement('div');cover.className='rotina-capa';const src=exs.map(imgDe).find(Boolean);if(src){const im=document.createElement('img');im.src=src;im.alt='';im.loading='lazy';im.onerror=()=>cover.remove();cover.appendChild(im);card.appendChild(cover)}card.append(label,text,status,progress,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
   });
  }
+ document.getElementById('alunoVerEvolucao').onclick=()=>document.getElementById('irEvolucao').click();
  const original=render;render=function(){original();atualizar()};
  const edit=document.getElementById('btnEditar'),oldEdit=edit.onclick;
  edit.onclick=function(){sessao=true;oldEdit.call(this)};
