@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=10">
+<link rel="stylesheet" href="temas.css?v=11">
 </head>
 <body>
 <header>
@@ -335,12 +335,23 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 </div>
 <div id="viewTreinos">
 <section class="welcome" id="boasVindas"><h2>Meus treinos</h2><p>Exercícios, cargas e histórico.</p></section>
-<section class="inicio-vazio" id="inicioVazio" hidden>
-<div class="inicio-arte" aria-hidden="true"><svg viewBox="0 0 240 160" fill="none"><circle cx="120" cy="80" r="65" fill="currentColor" opacity=".08"/><circle cx="120" cy="80" r="47" stroke="currentColor" opacity=".16" stroke-dasharray="4 8"/><g stroke="currentColor" stroke-width="10" stroke-linecap="round" transform="rotate(-25 120 80)"><path d="M82 80h76M82 55v50M66 66v28M158 55v50M174 66v28"/></g><path d="M188 30v14m-7-7h14M48 122v10m-5-5h10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
-<h2>Crie seu primeiro treino</h2><p>Adicione exercícios ou entre para acessar seus treinos salvos.</p>
-<button class="btn acc" id="comecarTreino" type="button">+ Criar meu treino</button>
-<button class="link" id="entrarInicio" type="button" hidden>Já tenho uma conta</button>
-<button class="link fraco" id="importarInicio" type="button">Importar um backup</button>
+<section class="inicio-vazio visual-hero" id="inicioVazio" hidden>
+<div class="hero-copy"><span class="eyebrow">ACADEMIA TENDA</span><h2>Seu treino.<br>Seu próximo passo.</h2><p>Organize seus exercícios, registre as cargas e acompanhe o que você constrói a cada treino.</p>
+<div class="hero-actions"><button class="btn acc" id="comecarTreino" type="button">Criar meu treino <span aria-hidden="true">↗</span></button><button class="link" id="entrarInicio" type="button" hidden>Entrar na minha conta →</button></div>
+<button class="link fraco" id="importarInicio" type="button">Já tem um backup? Importar</button>
+</div>
+<div class="hero-media"><img src="img/tenda-gym.jpg" alt="Halteres organizados em um ginásio" width="1000" height="667" fetchpriority="high">
+<div class="hero-photo-label">MOVIMENTO / CONSTÂNCIA / EVOLUÇÃO</div>
+<div class="app-preview" aria-label="Exemplo ilustrativo de uma ficha de treino"><span class="preview-kicker">EXEMPLO DE TREINO</span><strong>Força, um dia de cada vez.</strong><div class="preview-ex"><span>01</span><div>Supino com halteres<small>4 séries · 12 repetições</small></div><b>✓</b></div><div class="preview-ex"><span>02</span><div>Remada<small>3 séries · 12 repetições</small></div><b>○</b></div><div class="preview-track"><span></span></div><small>Sua rotina, organizada.</small></div>
+</div>
+</section>
+<section class="landing-story" id="landingStory" hidden>
+<div class="story-heading reveal"><span class="eyebrow">DA ROTINA AO PROGRESSO</span><h2>Mais clareza.<br>Em cada etapa.</h2><p>Um lugar para organizar o treino e acompanhar sua evolução.</p></div>
+<div class="story-grid"><article class="reveal"><span class="story-number">01 / ORGANIZAR</span><h3>Um plano que faz sentido.</h3><p>Crie seus treinos, escolha os exercícios e ajuste a ordem da sua rotina.</p><div class="story-visual story-chips" aria-hidden="true"><span>A / Superior</span><span>B / Inferior</span><span>C / Completo</span></div></article>
+<article class="reveal"><span class="story-number">02 / REGISTRAR</span><h3>Cada série conta.</h3><p>Registre a carga de cada série e consulte o histórico quando precisar.</p><div class="story-visual story-sets" aria-hidden="true"><span>1 <b>12</b> kg</span><span>2 <b>12</b> kg</span><span>3 <b>14</b> kg</span></div></article>
+<article class="reveal"><span class="story-number">03 / ACOMPANHAR</span><h3>Veja o caminho percorrido.</h3><p>Consulte os dias de atividade, a evolução das cargas e os planos enviados pelo professor.</p><div class="story-visual story-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article></div>
+<div class="landing-faq reveal"><h2>Antes de começar</h2><details><summary>Posso criar meu próprio treino?</summary><p>Sim. Use “Criar meu treino” e adicione seus exercícios. No modo Editar, você pode alterar nomes, séries, repetições e ordem.</p></details><details><summary>Como recebo um plano do professor?</summary><p>Entre na sua conta e abra “Meus planos”. Os planos aparecem quando o professor os publica para você.</p></details><details><summary>Como acompanho meu progresso?</summary><p>Marque os exercícios realizados e registre suas cargas. A seção Evolução reúne seu calendário e histórico.</p></details></div>
+<footer class="landing-footer"><span>ACADEMIA TENDA</span><span>Um treino de cada vez.</span><a href="https://www.pexels.com/photo/dumbbells-in-close-up-photography-6389886/" target="_blank" rel="noopener noreferrer">Foto: Tima Miroshnichenko / Pexels</a></footer>
 </section>
 <section id="bibliotecaTreinos" class="rotinas" aria-label="Escolher treino"></section>
 <div class="sessao-top" id="sessaoTop" hidden><button class="btn" id="voltarRotinas" type="button">← Todos os treinos</button><span class="small-note">Registro de hoje</span></div>
@@ -762,7 +773,7 @@ function atualizarInicio(){
  const algum=Object.values(dados.treinos).some(a=>Array.isArray(a)&&a.some(e=>String(e.nome||'').trim()));
  document.body.classList.toggle('sem-treinos',!algum&&!editando);
  document.body.classList.toggle('treino-vazio',!atual&&!editando);
- document.getElementById('inicioVazio').hidden=algum||editando;
+ document.getElementById('inicioVazio').hidden=algum||editando;document.getElementById('landingStory').hidden=algum||editando;
  document.getElementById('entrarInicio').hidden=!!usuario||!temConfig();
  document.getElementById('boasVindas').hidden=editando;
  document.getElementById('btnConcluir').hidden=editando||!atual;
@@ -1707,7 +1718,7 @@ if(temConfig()){
    const preview=document.createElement('small');preview.textContent=exs.slice(0,3).map(e=>e.nome).join(' · ')+(exs.length>3?'…':'');
    text.append(name,meta,preview);
    const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent='Abrir treino →';
-   card.append(label,text,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
+   const cover=document.createElement('div');cover.className='rotina-capa';const src=exs.map(imgDe).find(Boolean);if(src){const im=document.createElement('img');im.src=src;im.alt='';im.loading='lazy';im.onerror=()=>cover.remove();cover.appendChild(im);card.appendChild(cover)}card.append(label,text,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
   });
  }
  const original=render;render=function(){original();atualizar()};
@@ -1718,6 +1729,15 @@ if(temConfig()){
 })();
 </script>
 <script src="professor.js?v=3"></script>
+
+<script>
+(function(){
+ if(!('IntersectionObserver' in window)||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('revelado');observer.unobserve(e.target)}}),{threshold:.08});
+ document.querySelectorAll('.reveal').forEach(e=>{e.classList.add('animar');observer.observe(e)});
+})();
+</script>
+
 </body>
 </html>
 
