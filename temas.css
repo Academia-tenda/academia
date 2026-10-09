@@ -492,7 +492,7 @@ body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos 
 
 
 :is(body,body.noite) .item .routine-rest{flex-basis:100%;width:100%;box-sizing:border-box;margin:8px 0 0;padding:16px;background:var(--campo);box-shadow:none}
-:is(body,body.noite) .sp{display:grid;grid-template-columns:1fr 44px;align-items:center;min-width:104px;box-sizing:border-box}
+:is(body,body.noite) .sp{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;min-width:128px;box-sizing:border-box}
 :is(body,body.noite) .sp b{grid-column:1;grid-row:1;white-space:nowrap}
 :is(body,body.noite) .sp input{grid-column:1;grid-row:2;min-width:0}
 :is(body,body.noite) .sp-unit{grid-column:1;grid-row:3}
@@ -501,4 +501,4 @@ body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos 
 :is(body,body.noite) .serie-check:disabled,:is(body,body.noite) .check:disabled{cursor:default;opacity:.65}
 :is(body,body.noite) .serie-check:focus-visible{outline:2px solid var(--acento);outline-offset:3px}
 
-@media(max-width:760px){:is(body,body.noite) .seriespeso .sp{flex:1 1 120px;min-width:104px}:is(body,body.noite) .item .routine-rest{margin:8px 0 0;padding:14px}}
+@media(max-width:760px){:is(body,body.noite) .seriespeso .sp{flex:1 1 128px;min-width:128px}:is(body,body.noite) .item .routine-rest{margin:8px 0 0;padding:14px}}
