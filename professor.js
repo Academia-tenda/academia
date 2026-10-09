@@ -8,7 +8,15 @@ function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.classNa
 function profissional(){return !!usuario&&(meuPerfil==='professor'||meuPerfil==='dono')}
 function vazio(){return {versao:1,ficha:{titulo:'Plano de treino',objetivo:'',idade:'',sexo:'',peso:'',altura:'',profissional:'',registro:'',observacoes:'',cardio:''},treinos:{A:[]},nomes:{A:'Treino A'},alimentar:{titulo:'Plano alimentar',profissional:'',registro:'',orientacoes:'',refeicoes:[]}}}
 function chaveRascunho(uid){return 'tenda-plano-rascunho:'+usuario.uid+':'+uid}
-function mensagem(text,erro){$('profMensagem').textContent=text;$('profMensagem').classList.toggle('erro',!!erro)}
+
+function resumoEditor(){
+ const status=$('pEditorStatus');if(status){status.textContent=salvando?'Publicando…':modificado?'Rascunho em edição':'Editor do plano';status.classList.toggle('rascunho',modificado)}
+ if(!plano)return;
+ const treinos=Object.values(plano.treinos||{}),exercicios=treinos.reduce((n,a)=>n+a.filter(e=>String(e.nome||'').trim()).length,0),refeicoes=(plano.alimentar.refeicoes||[]).length;
+ $('pResumoPlano').textContent=exercicios+(exercicios===1?' exercício':' exercícios')+' · '+refeicoes+(refeicoes===1?' refeição':' refeições');
+}
+
+function mensagem(text,erro){resumoEditor();$('profMensagem').textContent=text;$('profMensagem').classList.toggle('erro',!!erro)}
 function mudou(){modificado=true;try{localStorage.setItem(chaveRascunho(selecionado.uid),JSON.stringify(plano));mensagem('Rascunho salvo neste navegador. Publique para enviar ao aluno.')}catch(e){mensagem('Rascunho apenas nesta tela. O navegador não conseguiu salvá-lo.',true)}}
 function sairSeguro(){return !modificado||confirm('Há um rascunho não publicado. Sair da edição? Ele continuará neste navegador se o salvamento local estiver disponível.')}
 function campo(label,value,change,area){const wrap=node('label','p-campo');wrap.append(node('span','',label));const input=node(area?'textarea':'input');input.value=value||'';if(!area)input.type='text';else input.rows=3;input.oninput=()=>change(input.value);wrap.append(input);return wrap}
@@ -38,14 +46,14 @@ async function abrirAluno(a){
 }
 function desenharFicha(){const root=$('pFicha');root.replaceChildren();const fields=[['titulo','Título do plano'],['objetivo','Objetivo'],['idade','Idade'],['sexo','Sexo (opcional)'],['peso','Peso (kg)'],['altura','Altura (cm)'],['profissional','Profissional responsável'],['registro','Registro profissional'],['cardio','Atividade complementar / cardio'],['observacoes','Orientações gerais']];fields.forEach(([k,label])=>root.append(campo(label,plano.ficha[k],v=>{plano.ficha[k]=v;mudou()},k==='observacoes')))}
 function proxima(){let i=0;while(plano.treinos[String.fromCharCode(65+i)])i++;return String.fromCharCode(65+i)}
-function desenharTreinos(){const root=$('pTreinos');root.replaceChildren();for(const [t,exs] of Object.entries(plano.treinos)){
+function desenharTreinos(){resumoEditor();const root=$('pTreinos');root.replaceChildren();for(const [t,exs] of Object.entries(plano.treinos)){
  const card=node('section','p-treino');const head=node('div','p-card-head');head.append(node('span','p-letra',t),campo('Nome do treino',plano.nomes[t]||'Treino '+t,v=>{plano.nomes[t]=v;mudou()}),botao('Remover treino',()=>{if(confirm('Remover este treino do rascunho?')){delete plano.treinos[t];delete plano.nomes[t];mudou();desenharTreinos()}},'btn warn'));card.append(head);
  const table=node('div','p-exercicios');exs.forEach((ex,i)=>{const row=node('div','p-exercicio');row.append(node('span','p-num',i+1),campo('Exercício',ex.nome,v=>{ex.nome=v;mudou()}),campo('Séries',ex.series,v=>{ex.series=v;mudou()}),campo('Repetições',ex.reps,v=>{ex.reps=v;mudou()}),campo('Descanso',ex.descanso,v=>{ex.descanso=v;mudou()}),botao('×',()=>{exs.splice(i,1);mudou();desenharTreinos()},'btn warn'));row.lastChild.setAttribute('aria-label','Remover exercício '+(i+1));table.append(row)});card.append(table,botao('+ Exercício',()=>{exs.push({id:id(),nome:'',series:'3',reps:'12',descanso:''});mudou();desenharTreinos()}));root.append(card)}
 }
-function desenharRefeicoes(){const root=$('pRefeicoes');root.replaceChildren();const info=$('pInfoAlimentar');info.replaceChildren();[['titulo','Título'],['profissional','Profissional responsável'],['registro','Registro profissional']].forEach(([k,l])=>info.append(campo(l,plano.alimentar[k],v=>{plano.alimentar[k]=v;mudou()})));info.append(campo('Orientações gerais',plano.alimentar.orientacoes,v=>{plano.alimentar.orientacoes=v;mudou()},true));
+function desenharRefeicoes(){resumoEditor();const root=$('pRefeicoes');root.replaceChildren();const info=$('pInfoAlimentar');info.replaceChildren();[['titulo','Título'],['profissional','Profissional responsável'],['registro','Registro profissional']].forEach(([k,l])=>info.append(campo(l,plano.alimentar[k],v=>{plano.alimentar[k]=v;mudou()})));info.append(campo('Orientações gerais',plano.alimentar.orientacoes,v=>{plano.alimentar.orientacoes=v;mudou()},true));
  plano.alimentar.refeicoes.forEach((r,i)=>{const card=node('section','p-treino');const row=node('div','p-card-head');row.append(node('span','p-letra',i+1),campo('Refeição',r.nome,v=>{r.nome=v;mudou()}),campo('Horário',r.horario,v=>{r.horario=v;mudou()}),botao('Remover',()=>{plano.alimentar.refeicoes.splice(i,1);mudou();desenharRefeicoes()},'btn warn'));card.append(row,campo('Alimentos e quantidades — um item por linha',r.itens,v=>{r.itens=v;mudou()},true),campo('Substituições e observações',r.observacoes,v=>{r.observacoes=v;mudou()},true));root.append(card)});
 }
-function aba(a){for(const k of ['treino','ficha','alimentar','previa']){$('pTab-'+k).hidden=k!==a;$('pBtn-'+k).classList.toggle('acc',k===a);$('pBtn-'+k).setAttribute('aria-pressed',String(k===a))}if(a==='previa')desenharPrevia($('pPrevia'),plano,selecionado.nome||selecionado.email)}
+function aba(a){resumoEditor();for(const k of ['treino','ficha','alimentar','previa']){$('pTab-'+k).hidden=k!==a;$('pBtn-'+k).classList.toggle('acc',k===a);$('pBtn-'+k).setAttribute('aria-pressed',String(k===a))}if(a==='previa')desenharPrevia($('pPrevia'),plano,selecionado.nome||selecionado.email)}
 function montarConteudo(){const out=normalizar(plano);let count=0;for(const [t,arr] of Object.entries(out.treinos)){out.treinos[t]=arr.filter(e=>String(e.nome||'').trim()).map(e=>({...e,nome:limitar(e.nome,160),series:limitar(e.series,20),reps:limitar(e.reps,40),descanso:limitar(e.descanso,80),treinoNome:limitar(out.nomes[t]||'Treino '+t,100)}));count+=out.treinos[t].length}out.alimentar.refeicoes=out.alimentar.refeicoes.filter(r=>String(r.nome||'').trim()||String(r.itens||'').trim());if(!count&&!out.alimentar.refeicoes.length)throw Error('Adicione ao menos um exercício ou uma refeição.');return out}
 async function publicar(){
  if(!profissional()||!selecionado||!plano||salvando)return;
