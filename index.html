@@ -8,7 +8,9 @@
 <title>Academia Tenda — Meus treinos</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/logo_tenda_tab.png">
-<link rel="apple-touch-icon" href="icons/icon-512.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512-maskable.png">
+<meta name="apple-mobile-web-app-title" content="Academia Tenda">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -312,7 +314,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #syncEstado{font-size:11px;color:#85858d;font-weight:400;white-space:nowrap}#syncEstado[data-estado="erro"]{color:#b64b21}@media(max-width:600px){#syncEstado{width:100%;text-align:right;font-size:10px}}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=16">
+<link rel="stylesheet" href="temas.css?v=17">
 </head>
 <body>
 <header>
@@ -330,6 +332,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <button class="btn" id="btnNoite" type="button" aria-label="Alternar modo noturno" title="Modo noturno"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></button>
   </div>
 </header>
+<div id="pwaAtualizacao" class="pwa-atualizacao" hidden role="status"><span>Uma nova versão está disponível.</span><button class="btn" id="pwaAtualizar" type="button">Atualizar</button></div>
 
 <div class="view-switch" aria-label="Seções do aplicativo">
 <button class="btn selecionado" id="irTreinos" type="button" aria-pressed="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 5v14M3 8v8M18 5v14M21 8v8M6 12h12"/></svg>Treinos</button>
@@ -477,6 +480,8 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   </div>
 </div>
 <div class="modal" id="modalConflitoSync" hidden><div class="caixa"><h2>Alterações em dois aparelhos</h2><p>As mesmas informações foram editadas de formas diferentes. Escolha a versão que deseja continuar usando. Uma cópia das duas versões fica guardada neste aparelho.</p><button class="btn acc" id="syncEscolherLocal">Manter a versão deste aparelho</button><button class="btn" id="syncEscolherNuvem">Usar a versão da nuvem</button></div></div>
+<div class="modal" id="modalInstalar" hidden><section class="caixa" role="dialog" aria-modal="true" aria-labelledby="instalarTitulo"><button class="btn" id="fecharInstalar" type="button" aria-label="Fechar instruções de instalação">Fechar</button><span class="eyebrow">SEU TREINO, SEMPRE À MÃO</span><h2 id="instalarTitulo">Instalar Academia Tenda</h2><p>Abra seus treinos pelo ícone na tela inicial, sem passar pelas lojas.</p><ol id="instalarIos" hidden><li>Abra este site no <strong>Safari</strong>.</li><li>Toque em <strong>Compartilhar</strong>.</li><li>Escolha <strong>Adicionar à Tela de Início</strong>.</li><li>Se aparecer, ative <strong>Abrir como App</strong> e toque em <strong>Adicionar</strong>.</li></ol><ol id="instalarOutros"><li>No Android, abra o site no <strong>Chrome</strong>.</li><li>No menu <strong>⋮</strong>, escolha <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.</li><li>Confirme e abra o ícone <strong>Academia Tenda</strong>.</li></ol><p class="small-note">No computador, use a opção de instalação do Chrome ou Edge. Para entrar, receber planos e enviar alterações à nuvem, mantenha uma conexão à internet. Sem conexão, o aplicativo usa os dados já disponíveis neste aparelho.</p></section></div>
+<script src="pwa.js?v=1"></script>
 <script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -1670,34 +1675,13 @@ document.getElementById('exportarCSV').onclick=function(){
  a.href=url;a.download='academia-tenda-cargas-'+hoje()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 
-let promptInstalar=null;
-function atualizarBtnInstalar(){
-  const b=document.getElementById('btnInstalar');if(!b)return;
-  b.hidden=!usuario;
-}
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault(); promptInstalar=e;
-  atualizarBtnInstalar();
-});
-window.addEventListener('appinstalled',function(){document.getElementById('btnInstalar').hidden=true;promptInstalar=null});
-document.getElementById('btnInstalar').onclick=async function(){
-  if(promptInstalar){
-    promptInstalar.prompt(); await promptInstalar.userChoice;
-    promptInstalar=null; this.hidden=true;
-    return;
-  }
-  statusSalvar('No iPhone/iPad: toque em Compartilhar (quadrado com seta) e depois em "Adicionar à Tela de Início". No Android/Chrome: toque em ⋮ e depois em "Instalar aplicativo" ou "Adicionar à tela inicial".');
+function atualizarBtnInstalar(){if(window.TendaPwa)window.TendaPwa.atualizar()}
+window.tendaPodeAtualizar=async function(){
+ if(editando||!document.getElementById('modalProfessor').hidden){statusSalvar('Finalize a edição ou feche o painel do professor antes de atualizar.');return false}
+ if(syncOcupado){statusSalvar('Aguarde o salvamento terminar antes de atualizar.');return false}
+ if(usuario&&sincronizado!==alteracao){const ok=await enviarNuvem();if(!ok||sincronizado!==alteracao){statusSalvar('A atualização aguarda o envio das alterações. Seus dados foram mantidos.');return false}}
+ return true;
 };
-if('serviceWorker' in navigator){
- let recarregandoAtualizacao=false;
- navigator.serviceWorker.addEventListener('controllerchange',function(){
-  if(recarregandoAtualizacao)return;recarregandoAtualizacao=true;location.reload();
- });
- navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
-  reg.update().catch(function(){});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')reg.update().catch(function(){})});
- }).catch(function(){});
-}
 
 dados=carregar(); atualizarOrdem(); garantirTreinoAtual(); salvarLocal(); render(); atualizaBotaoConta();
 let diaVisivel=hoje();setInterval(()=>{if(hoje()!==diaVisivel){diaVisivel=hoje();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}},15000);
@@ -1792,6 +1776,7 @@ if(temConfig()){
 
 </body>
 </html>
+
 
 
 

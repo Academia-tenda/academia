@@ -1,62 +1,15 @@
-const CACHE = 'academia-v64-polish';
-const ARQUIVOS = ['./img/tenda-gym.jpg','./temas.css?v=16', './professor.js?v=5', './professor.css?v=1', './', './index.html', './fotos.js', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-512-maskable.png', './icons/logo_tenda_tab.png',
-'./img/logo_tenda.png', './img/logo_tenda_branco.png',
-'./img/abdc_curto.jpg', './img/abdc_inferior.jpg', './img/abdc_remador.jpg', './img/barra_fixa.jpg', './img/cadeira_abdutora.jpg', './img/cadeira_extensora.jpg', './img/cadeira_flexora.jpg', './img/desenvolvimento_militar.jpg', './img/elevacao_frontal.jpg', './img/elevacao_lateral.jpg', './img/elevacao_posterior.jpg', './img/encolhimento.jpg', './img/flexao_chao.jpg', './img/legpress.jpg', './img/panturrilha_pe.jpg', './img/peckdeck.jpg', './img/puxada_alta.jpg', './img/remada_baixa.jpg', './img/remada_unilateral.jpg', './img/rosca_alternada.jpg', './img/rosca_punho.jpg', './img/rosca_scott.jpg', './img/rosca_w.jpg', './img/supino_halteres.jpg', './img/supino_inclinado_barra.jpg', './img/supino_reto_barra.jpg', './img/triceps_frances.jpg', './img/triceps_polia.jpg', './img/triceps_testa.jpg'];
-
-self.addEventListener('install', function (e) {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function (c) {
-    return c.addAll(ARQUIVOS.map(function (u) { return new Request(u, { cache: 'no-cache' }); }));
-  }));
+const CACHE='academia-v65-pwa';
+const ESSENCIAIS=['./','./index.html','./temas.css?v=17','./professor.css?v=1','./professor.js?v=5','./pwa.js?v=1','./fotos.js','./firebase-config.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png'];
+const OPCIONAIS=['./img/tenda-gym.jpg','./img/logo_tenda.png','./img/logo_tenda_branco.png'];
+self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(ESSENCIAIS.map(u=>new Request(u,{cache:'reload'})));await Promise.allSettled(OPCIONAIS.map(u=>c.add(new Request(u,{cache:'reload'}))))})())});
+self.addEventListener('message',e=>{if(e.data&&e.data.type==='SKIP_WAITING')self.skipWaiting()});
+self.addEventListener('activate',e=>{e.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith('academia-')&&k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim()})())});
+self.addEventListener('fetch',e=>{
+ const req=e.request,url=new URL(req.url);if(req.method!=='GET')return;
+ // Firebase Auth, Firestore e outros serviços seguem diretamente para a rede.
+ const local=url.origin===self.location.origin&&url.pathname.startsWith(new URL(self.registration.scope).pathname);
+ const sdk=url.hostname==='www.gstatic.com'&&url.pathname.startsWith('/firebasejs/');
+ if(!local&&!sdk)return;
+ if(req.mode==='navigate'){e.respondWith((async()=>{const c=await caches.open(CACHE);try{const r=await fetch(req);if(r.ok)await c.put(req,r.clone());if(r.ok)return r;const cached=await c.match('./index.html');return cached||r}catch(err){return await c.match(req)||await c.match('./index.html')||new Response('Abra o aplicativo com conexão à internet uma vez para preparar o modo offline.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}})}})());return}
+ e.respondWith((async()=>{const c=await caches.open(CACHE),cached=await c.match(req);if(cached)return cached;try{const r=await fetch(req);if(r.ok&&r.type!=='opaque')await c.put(req,r.clone());return r}catch(err){return new Response('',{status:503})}})());
 });
-
-self.addEventListener('activate', function (e) {
-  e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); })
-  );
-});
-
-self.addEventListener('fetch', function (e) {
-  if (e.request.method !== 'GET') return;
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).then(function (resp) {
-        if (resp && resp.ok) {
-          const c = resp.clone();
-          caches.open(CACHE).then(function (ca) { ca.put(e.request, c); });
-        }
-        return resp;
-      }).catch(function () {
-        return caches.match(e.request).then(function (r) { return r || caches.match('./index.html'); });
-      })
-    );
-    return;
-  }
-  const url = new URL(e.request.url);
-  const ehImagem = /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url.pathname);
-  e.respondWith(
-    caches.match(e.request).then(function (r) {
-      if (r) {
-        const ct = r.headers.get('content-type') || '';
-        if (!ehImagem || /^image\//i.test(ct)) return r;
-      }
-      return fetch(e.request).then(function (resp) {
-        const origem = new URL(e.request.url);
-        const cacheavel = resp && resp.ok && (origem.origin === self.location.origin || origem.hostname.endsWith('gstatic.com'));
-        if (cacheavel) {
-          const clone = resp.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, clone); });
-        }
-        return resp;
-      }).catch(function () {
-        if (ehImagem && url.origin === self.location.origin) {
-          return caches.match('./icons/icon-192.png');
-        }
-        return new Response('', { status: 404, statusText: 'Not Found' });
-      });
-    })
-  );
-});
-
