@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=5">
+<link rel="stylesheet" href="temas.css?v=6">
 </head>
 <body>
 <header>
@@ -487,7 +487,11 @@ function atualizarPainel(){
 
 const BASE=['A','B','C','D','E'];
 let ORDEM=BASE.slice();
-function atualizarOrdem(){const ks=Object.keys((dados&&dados.treinos)||{});ORDEM=ks.length?ks:BASE.slice();return ORDEM}
+function atualizarOrdem(){
+ const ks=Object.keys((dados&&dados.treinos)||{}),salva=dados&&dados.nomes&&dados.nomes.__ordemTreinos;
+ const validas=Array.isArray(salva)?salva.filter((t,i)=>ks.includes(t)&&salva.indexOf(t)===i):[];
+ ORDEM=ks.length?validas.concat(ks.filter(t=>!validas.includes(t))):BASE.slice();return ORDEM;
+}
 function garantirTreinoAtual(){if(ORDEM.indexOf(treinoAtual)<0)treinoAtual=ORDEM[0]}
 function proximaLetra(){const ks=Object.keys(dados.treinos);for(const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){if(ks.indexOf(c)<0)return c}return 'X'+(ks.length+1)}
 function adicionarAba(){
@@ -525,6 +529,18 @@ const IMGS={
 };
 function novoItem(nome,series,reps){return{id:id(),nome:nome,series:series,reps:reps,img:IMGS[nome]?('img/'+IMGS[nome]):''}}
 function nomeDo(t){const v=dados&&dados.nomes&&dados.nomes[t];return (v&&String(v).trim())?String(v).trim():'Treino '+t}
+
+function moverTreino(t,delta){
+ if(!editando)return;
+ atualizarOrdem();
+ const from=ORDEM.indexOf(t),to=from+delta;
+ if(from<0||to<0||to>=ORDEM.length)return;
+ const ordem=ORDEM.slice();ordem.splice(from,1);ordem.splice(to,0,t);
+ if(!dados.nomes)dados.nomes={};
+ dados.nomes.__ordemTreinos=ordem;
+ atualizarOrdem();salvar();render();
+}
+
 function renderAbas(){
   const nav=document.getElementById('abas'), edit=editando;
   nav.textContent='';
@@ -551,6 +567,13 @@ function renderAbas(){
       rm.disabled=(ORDEM.length<2);
       rm.onclick=function(ev){ev.stopPropagation();removerAba(t)};
       a.appendChild(rm);
+      const movimentos=document.createElement('span');movimentos.className='aba-movimentos';
+      [-1,1].forEach(function(delta){
+        const b=document.createElement('button');b.type='button';b.className='aba-mover';b.textContent=delta<0?'←':'→';
+        b.setAttribute('aria-label','Mover treino '+t+(delta<0?' para a esquerda':' para a direita'));
+        const pos=ORDEM.indexOf(t);b.disabled=delta<0?pos===0:pos===ORDEM.length-1;
+        b.onclick=function(ev){ev.stopPropagation();moverTreino(t,delta)};movimentos.appendChild(b);
+      });a.appendChild(movimentos);
     }else{
       a.textContent=t;
       a.title=(nome===NOMES[t]||nome===t)?'Treino '+t:nome;

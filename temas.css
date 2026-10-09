@@ -156,3 +156,9 @@ body.noite .btn.acc,body.noite .btn.av{color:#17191c}
 :is(body,body.noite) .ordem-puxador{font-size:26px;padding:6px 10px;cursor:grab;color:var(--secundario)}
 :is(body,body.noite) #lista .item.ordem-alvo{outline:2px solid var(--acento);outline-offset:3px}
 :is(body,body.noite) .ordem-arrastando{opacity:.5}
+
+body.editando #abas{flex-wrap:wrap}
+body.editando .aba{position:relative;min-width:140px}
+:is(body,body.noite) .aba-movimentos{display:flex;justify-content:center;gap:8px;margin-top:8px}
+:is(body,body.noite) .aba-mover{background:var(--campo);color:var(--texto);border:0;border-radius:8px;min-height:36px;min-width:42px;font-size:18px;cursor:pointer}
+:is(body,body.noite) .aba-mover:disabled{opacity:.3;cursor:default}
