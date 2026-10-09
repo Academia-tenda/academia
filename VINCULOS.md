@@ -1,6 +1,6 @@
 # Carteiras geridas pelo instrutor
 
-Esta alteração substitui os códigos de convite pela atribuição direta de alunos. A publicação das novas regras e da interface deve ser coordenada; as regras precisam ser publicadas primeiro. A configuração existente `config/vinculos.ativo = true` continua válida.
+Os códigos de convite foram substituídos pela atribuição direta de alunos. O responsável confirmou a publicação das regras no Firebase em 9 de outubro de 2026, antes da publicação desta interface. A configuração existente `config/vinculos.ativo = true` continua válida.
 
 ## Fluxo
 
@@ -18,4 +18,4 @@ A atribuição e a liberação gravam o vínculo e o perfil em uma transação. 
 
 Testado no emulador do Firestore: dois instrutores tentando selecionar simultaneamente o mesmo aluno têm apenas um vencedor; tentativa direta de substituir o professor é rejeitada; liberar corta o acesso e preserva os dados. Os testes existentes de edição, publicação, conclusão e sincronização também passaram.
 
-Esta proposta amplia o acesso aos registros porque dispensa aceitação pelo aluno. A publicação em produção depende da confirmação específica do responsável. Não altera contas, cobranças ou dados de treino.
+A atribuição direta foi autorizada pelo responsável: o instrutor pode adicionar usuários sem professor e consultar os respectivos registros sem aceitação prévia do aluno. Não altera contas, cobranças ou dados de treino.
