@@ -340,3 +340,47 @@ body:not(.modo-biblioteca):not(.editando) .progresso .nomeTreino{font-size:24px;
 :is(body,body.noite) #pTab-treino:not([hidden]),:is(body,body.noite) #pTab-ficha:not([hidden]),:is(body,body.noite) #pTab-alimentar:not([hidden]),:is(body,body.noite) #pTab-previa:not([hidden]){animation:aluno-aparecer .2s ease both}
 @media(max-width:900px){:is(body,body.noite) #modalProfessor .p-top h2{font-size:30px}:is(body,body.noite) #modalProfessor .p-top{gap:24px}:is(body,body.noite) .p-publish-info{flex-basis:100%}}
 @media(max-width:760px){:is(body,body.noite) #modalProfessor .p-top{grid-template-columns:1fr;padding-top:38px;gap:20px}:is(body,body.noite) #modalProfessor .p-top h2{font-size:30px;max-width:400px}:is(body,body.noite) .p-hero-media{height:145px}:is(body,body.noite) .p-resumo{margin-bottom:24px}:is(body,body.noite) .p-resumo>div{padding:16px}:is(body,body.noite) .p-sidebar{padding:18px}:is(body,body.noite) .p-section-intro h3{font-size:21px}:is(body,body.noite) .p-publish-bar{padding:14px}:is(body,body.noite) .p-publish-bar .btn{flex:1;font-size:11px}:is(body,body.noite) .p-vazio{padding:36px 24px}}
+
+/* Shared finishing: readable controls, quiet feedback and mobile editing. */
+:is(body,body.noite) .sessao-ajuda{margin:20px 32px 0;font-size:12px;color:var(--secundario);line-height:1.6}
+body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos .sessao-ajuda{display:none}
+:is(body,body.noite) #statusDados:empty,:is(body,body.noite) .p-mensagem:empty{display:none}
+:is(body,body.noite) .p-campo>span{color:var(--secundario);font-size:12px;font-weight:500;line-height:1.5}
+:is(body,body.noite) .p-campo input,:is(body,body.noite) .p-campo textarea{background:var(--campo);border:1px solid var(--linha);border-radius:8px;min-height:44px;padding:11px 12px;line-height:1.4}
+:is(body,body.noite) .p-exercicio{padding:14px 0;border-color:var(--linha);align-items:end}
+:is(body,body.noite) .p-treino{border-radius:14px}
+:is(body,body.noite) .p-vazio{border:1px solid var(--linha);background:var(--superficie);border-radius:14px;color:var(--secundario);font-size:14px}
+:is(body,body.noite) .p-mensagem{color:var(--secundario);font-size:12px}
+:is(body,body.noite) .p-mensagem.erro{color:var(--erro)}
+:is(body,body.noite) #syncEstado{font-size:10px;color:var(--secundario)}
+:is(body,body.noite) #syncEstado[data-estado="erro"]{color:var(--erro)}
+:is(body,body.noite) .modal{overscroll-behavior:contain;padding:20px 16px}
+:is(body,body.noite) .caixa{max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain}
+:is(body,body.noite) #modalConflitoSync .btn{width:100%;margin-top:12px;white-space:normal}
+:is(body,body.noite) .p-tabs .btn{min-height:44px}
+:is(body,body.noite) .check{min-width:44px;min-height:44px}
+:is(body,body.noite) .check:focus-visible{outline:2px solid var(--acento);outline-offset:4px}
+@media(max-width:600px){
+ :is(body,body.noite) input,:is(body,body.noite) select,:is(body,body.noite) textarea{font-size:16px}
+ :is(body,body.noite) header{padding:14px 20px;gap:10px;align-items:center}
+ :is(body,body.noite) .brand-small{display:none}
+ :is(body,body.noite) .logo-tenda{width:34px;height:34px}
+ :is(body,body.noite) .topo{gap:6px;flex:1;justify-content:flex-end}
+ :is(body,body.noite) .topo .btn{min-height:44px;padding:10px 12px}
+ :is(body,body.noite) #syncEstado{order:5;width:100%;min-height:0;line-height:1.2}
+ :is(body,body.noite) .sessao-ajuda{margin:20px 20px 0}
+ :is(body,body.noite) .p-publish-bar{padding-bottom:calc(14px + env(safe-area-inset-bottom));bottom:0}
+ :is(body,body.noite) .p-publish-bar .btn{font-size:13px;min-height:44px}
+ :is(body,body.noite) #modalProfessor .caixa{max-height:none;padding-bottom:32px}
+ :is(body,body.noite) .p-exercicio{grid-template-columns:24px repeat(3,minmax(0,1fr));gap:8px}
+ :is(body,body.noite) .p-exercicio>.p-num{grid-column:1;grid-row:1;align-self:center}
+ :is(body,body.noite) .p-exercicio>.p-campo:nth-child(2){grid-column:2/-1;grid-row:1}
+ :is(body,body.noite) .p-exercicio>.p-campo:nth-child(3){grid-column:2;grid-row:2}
+ :is(body,body.noite) .p-exercicio>.p-campo:nth-child(4){grid-column:3;grid-row:2}
+ :is(body,body.noite) .p-exercicio>.p-campo:nth-child(5){grid-column:4;grid-row:2}
+ :is(body,body.noite) .p-exercicio>.btn{grid-column:1;grid-row:2;min-width:24px;padding:6px}
+ :is(body,body.noite) .p-campo input{padding:10px 8px}
+ :is(body,body.noite) .p-form-grid{grid-template-columns:1fr}
+ :is(body,body.noite) .p-sidebar{max-height:240px}
+}
+@media(prefers-reduced-motion:reduce){:is(body,body.noite){scroll-behavior:auto}}

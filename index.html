@@ -312,7 +312,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #syncEstado{font-size:11px;color:#85858d;font-weight:400;white-space:nowrap}#syncEstado[data-estado="erro"]{color:#b64b21}@media(max-width:600px){#syncEstado{width:100%;text-align:right;font-size:10px}}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=15">
+<link rel="stylesheet" href="temas.css?v=16">
 </head>
 <body>
 <header>
@@ -373,13 +373,14 @@ body.noite .prof-row .p-info span{color:#94a3b8}
   <div class="barra"><div id="barraFill"></div></div>
   <div class="ptxt"><span id="progTexto">0/0 (0%)</span><span id="dataTexto"></span></div>
 </section>
-<div class="cardio">Atividade complementar: <b>personalize conforme sua rotina</b> — bike, caminhada ou elíptico</div>
+<div class="cardio" hidden></div>
 <div class="aviso" id="avisoConta" hidden>Login indisponível no momento — os dados continuam salvos neste celular.</div>
 <ul id="lista"></ul>
 <div class="busca-vid">
   <input type="search" id="buscaQuery" placeholder="Buscar vídeo do exercício (abre o YouTube)…" enterkeyhint="search" aria-label="Buscar vídeo do exercício">
   <button type="button" class="btn" id="btnBuscar" aria-label="Buscar vídeo"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
 </div>
+<p class="sessao-ajuda" id="sessaoAjuda"></p>
 <button class="btn acc" id="btnConcluir" type="button">Concluir treino</button>
 <button class="btn acc" id="btnAdicionar">+ Adicionar exercício</button>
 <div class="rodape"><button class="btn warn" id="btnLimpar">Limpar marcações de hoje</button></div>
@@ -388,7 +389,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <div id="statusDados" role="status" aria-live="polite"></div>
 </div>
 <section id="viewEvolucao" class="evolucao" hidden aria-label="Painel de evolução">
-  <div class="secao"><h2>Calendário de treinos</h2><p>Os dias destacados têm pelo menos um exercício marcado como concluído.</p>
+  <div class="secao"><h2>Calendário de treinos</h2><p>Os dias destacados têm exercícios realizados ou um treino concluído.</p>
   <div class="cal-nav"><button class="btn" id="mesAnterior" aria-label="Mês anterior">‹</button><strong id="mesTitulo"></strong><button class="btn" id="mesSeguinte" aria-label="Mês seguinte">›</button></div>
   <div class="cal-grid" id="calendario"></div><div class="cal-legend">● Dia com atividade registrada</div></div>
   <div class="secao"><h2>Evolução das cargas</h2><p>Selecione um exercício para visualizar a maior carga registrada em cada dia.</p>
@@ -475,7 +476,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
     <button type="button" id="btnCancelarAluno">Cancelar</button>
   </div>
 </div>
-<div class="modal" id="modalConflitoSync" hidden><div class="box"><h2>Alterações em dois aparelhos</h2><p>As mesmas informações foram editadas de formas diferentes. Escolha a versão que deseja continuar usando. Uma cópia das duas versões fica guardada neste aparelho.</p><button class="btn acc" id="syncEscolherLocal">Manter a versão deste aparelho</button><button class="btn" id="syncEscolherNuvem">Usar a versão da nuvem</button></div></div>
+<div class="modal" id="modalConflitoSync" hidden><div class="caixa"><h2>Alterações em dois aparelhos</h2><p>As mesmas informações foram editadas de formas diferentes. Escolha a versão que deseja continuar usando. Uma cópia das duas versões fica guardada neste aparelho.</p><button class="btn acc" id="syncEscolherLocal">Manter a versão deste aparelho</button><button class="btn" id="syncEscolherNuvem">Usar a versão da nuvem</button></div></div>
 <script src="fotos.js"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -663,11 +664,11 @@ function mostrarToast(msg){
  clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on')},3500);
 }
 function migrarConclusoes(j){
- j.progresso=j.progresso||{};
- for(const [d,ts] of Object.entries(j.concluidos||{})){for(const t of Object.keys(j.treinos||{})){if(ts&&ts[t]){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id)}}}
- j.concluidos={};return j;
+ j.progresso=j.progresso||{};j.concluidos=j.concluidos||{};
+ for(const [d,ts] of Object.entries(j.concluidos)){for(const t of Object.keys(j.treinos||{})){if(ts&&ts[t]&&ts[t]!=='manual'){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id);delete ts[t]}}}
+ return j;
 }
-function diaAtivo(d){return Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)}
+function diaAtivo(d){return Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)||Object.values((dados.concluidos||{})[d]||{}).some(v=>v==='manual')}
 function treinoCompleto(){const a=itens();return a.length>0&&a.every(e=>feitos().includes(e.id))}
 
 
@@ -771,7 +772,9 @@ function atualizaProgresso(){
   const pct=total?Math.round(n/total*100):0;
   document.getElementById('barraFill').style.width=pct+'%';
   document.getElementById('progTexto').textContent=n+'/'+total+' ('+pct+'%)';
- const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent='Concluir treino de hoje';b.setAttribute('aria-pressed','false');
+ const completo=!!(dados.concluidos[hoje()]&&dados.concluidos[hoje()][treinoAtual]==='manual');
+ const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent=completo?'Reabrir treino de hoje':'Concluir treino de hoje';b.setAttribute('aria-pressed',String(completo));b.classList.toggle('acc',!completo);
+ document.getElementById('sessaoAjuda').textContent=completo?'Treino concluído com '+n+' de '+total+' exercícios marcados. Você pode reabrir ou ajustar as marcações.':'Marque os exercícios realizados. Você pode concluir mesmo com exercícios pendentes.';
  document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR');
 }
 function atualizarInicio(){
@@ -786,7 +789,7 @@ function atualizarInicio(){
  const resumo=document.querySelector('.painel');resumo.hidden=!diasComTreino().length&&!Object.values(dados.pesos||{}).some(r=>r.hist&&r.hist.length);
  document.querySelector('.week-card').hidden=!diasComTreino().length;
  document.querySelector('.progresso').hidden=!atual;
- document.querySelector('.cardio').hidden=!atual;
+ document.querySelector('.cardio').hidden=true;
  document.querySelector('.busca-vid').hidden=!atual;
  document.querySelector('.rodape').hidden=!atual;
 }
@@ -832,11 +835,12 @@ function render(){
     const chk=document.createElement('button');
     chk.className='check';
     chk.textContent='✓';
-    chk.setAttribute('aria-label','Marcar '+ex.nome);
+    chk.setAttribute('aria-label',(feitosArr.includes(ex.id)?'Desmarcar ':'Concluir ')+ex.nome);
     chk.setAttribute('aria-pressed',String(feitosArr.indexOf(ex.id)>-1));
     chk.onclick=function(){
       const f=feitos(), i=f.indexOf(ex.id);
       if(i>-1)f.splice(i,1); else f.push(ex.id);
+      if(dados.concluidos[hoje()])delete dados.concluidos[hoje()][treinoAtual];
       salvar(); render();
     };
     const info=document.createElement('div');
@@ -1009,11 +1013,11 @@ document.getElementById('btnLimpar').onclick=function(){
   salvar(); render();
 };
 document.getElementById('btnConcluir').onclick=function(){
- const arr=itens();if(!arr.length)return;
- const marcados=feitos().filter(function(f){return arr.some(function(e){return e.id===f})});
- if(!marcados.length){statusSalvar('Marque os exercícios que concluiu e depois toque em Concluir treino de hoje.');return}
- salvar();
- statusSalvar('Treino '+treinoAtual+' concluído e salvo: '+marcados.length+' de '+arr.length+' exercícios. Bom descanso!');
+ if(!itens().length)return;const d=hoje();
+ if(!dados.concluidos[d])dados.concluidos[d]={};
+ if(dados.concluidos[d][treinoAtual]==='manual')delete dados.concluidos[d][treinoAtual];
+ else dados.concluidos[d][treinoAtual]='manual';
+ salvar();render();
 };
 
 const CHAVE_NOITE='academia_noite';
@@ -1564,7 +1568,7 @@ document.getElementById('irEvolucao').onclick=()=>mudarVista('evolucao');
 document.getElementById('mesAnterior').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()-1);renderCalendario()};
 document.getElementById('mesSeguinte').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()+1);renderCalendario()};
 function dataISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function diasComTreino(){return Object.keys(dados.progresso||{}).filter(diaAtivo)}
+function diasComTreino(){return [...new Set([...Object.keys(dados.progresso||{}),...Object.keys(dados.concluidos||{})])].filter(diaAtivo)}
 function renderCalendario(){
  const y=mesExibido.getFullYear(),m=mesExibido.getMonth(),grid=document.getElementById('calendario');
  document.getElementById('mesTitulo').textContent=mesExibido.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
@@ -1761,7 +1765,8 @@ if(temConfig()){
    text.append(name,meta,preview);
    const marcados=(dados.progresso[hoje()]&&dados.progresso[hoje()][t])||[];
    const count=exs.filter(e=>marcados.includes(e.id)).length;
-   const status=document.createElement('span');status.className='rotina-status'+(count===exs.length?' completo':'');status.textContent=count===exs.length?'Concluído hoje':count?count+' de '+exs.length+' hoje':'Pronto para treinar';
+   const concluido=dados.concluidos[hoje()]&&dados.concluidos[hoje()][t]==='manual';
+   const status=document.createElement('span');status.className='rotina-status'+(concluido?' completo':'');status.textContent=concluido?'Concluído · '+count+'/'+exs.length+' exercícios':count?count+' de '+exs.length+' hoje':'Pronto para treinar';
    const progress=document.createElement('span');progress.className='rotina-progresso';progress.setAttribute('aria-hidden','true');const fill=document.createElement('i');fill.style.width=(count/exs.length*100)+'%';progress.appendChild(fill);
    const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent=count&&count<exs.length?'Continuar treino →':'Abrir treino →';
    const cover=document.createElement('div');cover.className='rotina-capa';const src=exs.map(imgDe).find(Boolean);if(src){const im=document.createElement('img');im.src=src;im.alt='';im.loading='lazy';im.onerror=()=>cover.remove();cover.appendChild(im);card.appendChild(cover)}card.append(label,text,status,progress,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
@@ -1775,7 +1780,7 @@ if(temConfig()){
  atualizar();
 })();
 </script>
-<script src="professor.js?v=4"></script>
+<script src="professor.js?v=5"></script>
 
 <script>
 (function(){
@@ -1787,6 +1792,7 @@ if(temConfig()){
 
 </body>
 </html>
+
 
 
 
