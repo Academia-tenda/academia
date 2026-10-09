@@ -1296,14 +1296,14 @@ function abrirPainelProfessor(){
  document.getElementById('profBusca').value='';
  carregarPainelProfessor();
 }
-async function carregarPainelProfessor(){
+async function carregarPainelProfessor(perfisCarregados){
  const lista=document.getElementById('profLista');
  const ped=document.getElementById('profPedidos');
  try{
   const fb=await getFB();
-  const qs=await fb.F.getDocs(fb.F.collection(fb.db,'perfis'));
-  const perfis=[];
-  qs.forEach(function(d){const v=d.data();if(v&&v.uid&&v.role)perfis.push(v)});
+  const qs=perfisCarregados?null:await fb.F.getDocs(fb.F.collection(fb.db,'perfis'));
+  const perfis=perfisCarregados?perfisCarregados.slice():[];
+  if(qs)qs.forEach(function(d){const v=d.data();if(v&&v.uid&&v.role)perfis.push(v)});
   perfis.sort(function(a,b){return String(a.nome||a.email||'').localeCompare(String(b.nome||b.email||''))});
   if(meuPerfil==='dono'){
    const pend=perfis.filter(function(p){return p.role==='pendente'});
@@ -1797,9 +1797,9 @@ if(temConfig()){
  atualizar();
 })();
 </script>
-<script src="evolucao-professor.js?v=2"></script>
-<script src="rotina.js?v=1"></script>
-<script src="professor.js?v=9"></script>
+<script src="evolucao-professor.js?v=3"></script>
+<script src="rotina.js?v=2"></script>
+<script src="professor.js?v=10"></script>
 <script src="conta.js?v=1"></script>
 
 <script>
