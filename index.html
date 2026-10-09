@@ -754,7 +754,7 @@ function podar(){
 }
 function salvarLocal(){
  if(sessaoAluno)return true;
- try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;indicadorSync(usuario?(navigator.onLine?'Salvando…':'Sem conexão'):'Salvo no aparelho',usuario?(navigator.onLine?'salvando':'offline'):'ok');return true}
+ try{localStorage.setItem(CHAVE,JSON.stringify(dados));localSalvo=true;indicadorSync(usuario?(navigator.onLine?'Salvando…':'Sem conexão'):'',usuario?(navigator.onLine?'salvando':'offline'):'ok');return true}
  catch(e){localSalvo=false;statusSalvar('Não foi salvo neste navegador. Exporte um backup antes de fechar.');return false}
 }
 function salvar(){alteracao++;salvarLocal();agendarEnvio();atualizarPainel();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
@@ -1438,7 +1438,7 @@ async function iniciarAuth(){
       ultimoUid=null;
       const tinha=!!dados&&temConteudo(dados);
       limparDadosNavegador();
-      if(tinha)statusSalvar('Você saiu da conta: este navegador foi esvaziado. Entre na sua conta para recuperar seus dados.');
+      indicadorSync('','ok');
     }
   });
 }
@@ -1684,7 +1684,16 @@ document.getElementById('btnInstalar').onclick=async function(){
   }
   statusSalvar('No iPhone/iPad: toque em Compartilhar (quadrado com seta) e depois em "Adicionar à Tela de Início". No Android/Chrome: toque em ⋮ e depois em "Instalar aplicativo" ou "Adicionar à tela inicial".');
 };
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
+if('serviceWorker' in navigator){
+ let recarregandoAtualizacao=false;
+ navigator.serviceWorker.addEventListener('controllerchange',function(){
+  if(recarregandoAtualizacao)return;recarregandoAtualizacao=true;location.reload();
+ });
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+  reg.update().catch(function(){});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')reg.update().catch(function(){})});
+ }).catch(function(){});
+}
 
 dados=carregar(); atualizarOrdem(); garantirTreinoAtual(); salvarLocal(); render(); atualizaBotaoConta();
 let diaVisivel=hoje();setInterval(()=>{if(hoje()!==diaVisivel){diaVisivel=hoje();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}},15000);
