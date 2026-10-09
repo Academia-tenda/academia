@@ -169,3 +169,29 @@ body.editando .aba{flex-direction:column;min-width:140px;gap:8px;position:relati
 
 :is(body,body.noite) .busca-vid input,:is(body,body.noite) .caixa input,:is(body,body.noite) .chart-select,:is(body,body.noite) .med-campo input,:is(body,body.noite) .med-peso input,:is(body,body.noite) .edicao input{background:var(--campo);color:var(--texto);border:1px solid var(--linha);border-radius:8px}
 :is(body,body.noite) .busca-vid input::placeholder{color:var(--secundario)}
+
+/* Rotinas: seleção antes da execução. */
+:is(body,body.noite) .rotinas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 32px 28px}
+:is(body,body.noite) .rotina-card{display:flex;align-items:flex-start;gap:16px;text-align:left;padding:24px;background:var(--superficie);color:var(--texto);border:1px solid var(--linha);border-radius:14px;font:inherit;cursor:pointer;min-width:0;flex-wrap:wrap;transition:border-color .15s,transform .15s}
+:is(body,body.noite) .rotina-card:hover{border-color:var(--acento);transform:translateY(-2px)}
+:is(body,body.noite) .rotina-letra{display:grid;place-items:center;width:42px;height:42px;background:var(--campo);color:var(--texto);border-radius:10px;font-size:16px;font-weight:650;flex-shrink:0}
+:is(body,body.noite) .rotina-conteudo{flex:1;min-width:0}
+:is(body,body.noite) .rotina-conteudo strong{display:block;font-size:18px;line-height:1.4;letter-spacing:-.3px;margin-bottom:8px}
+:is(body,body.noite) .rotina-meta{display:block;font-size:12px;color:var(--secundario)}
+:is(body,body.noite) .rotina-conteudo small{display:block;color:var(--secundario);font-size:12px;line-height:1.6;margin-top:14px}
+:is(body,body.noite) .rotina-abrir{flex-basis:100%;border-top:1px solid var(--linha);padding-top:14px;margin-top:6px;font-size:12px;font-weight:600;color:var(--acento)}
+:is(body,body.noite) .sessao-top{margin:24px 32px;display:flex;align-items:center;justify-content:space-between}
+:is(body,body.noite) .sessao-top .btn{border:0;background:transparent;padding:8px 0;min-height:36px}
+body.modo-biblioteca:not(.editando) #abas,body.modo-biblioteca:not(.editando) .section-label,body.modo-biblioteca:not(.editando) .progresso,body.modo-biblioteca:not(.editando) .cardio,body.modo-biblioteca:not(.editando) #lista,body.modo-biblioteca:not(.editando) #btnConcluir{display:none!important}
+body:not(.modo-biblioteca) .welcome,body:not(.modo-biblioteca) .week-card,body:not(.modo-biblioteca) .painel{display:none!important}
+:is(body,body.noite) .treino-ferramentas{margin:20px 32px;color:var(--secundario);font-size:12px;border-top:1px solid var(--linha);padding-top:14px}
+:is(body,body.noite) .treino-ferramentas summary{cursor:pointer;padding:10px 0;font-weight:500}
+:is(body,body.noite) .treino-ferramentas .busca-vid,:is(body,body.noite) .treino-ferramentas .rodape{margin:12px 0}
+:is(body,body.noite) .perfil-dados-titulo{font-size:12px;color:var(--secundario);margin-top:24px;font-weight:600}
+:is(body,body.noite) #modalPerfil .acoesDados{margin:12px 0 0;padding:0;border:0;flex-wrap:wrap}
+:is(body,body.noite) #modalDados .btn{margin:8px 4px 8px 0}
+:is(body,body.noite) .p-resumo{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:16px;margin-top:24px}
+:is(body,body.noite) .p-resumo>div{padding:18px 20px;background:var(--superficie);border:1px solid var(--linha);border-radius:12px;min-width:0}
+:is(body,body.noite) .p-resumo span{display:block;font-size:11px;color:var(--secundario);margin-bottom:8px}
+:is(body,body.noite) .p-resumo strong{font-size:18px;font-weight:600;overflow-wrap:anywhere}
+@media(max-width:760px){:is(body,body.noite) .rotinas{grid-template-columns:1fr;margin:0 20px 24px;gap:12px}:is(body,body.noite) .rotina-card{padding:20px}:is(body,body.noite) .sessao-top,:is(body,body.noite) .treino-ferramentas{margin-left:20px;margin-right:20px}:is(body,body.noite) .p-resumo{grid-template-columns:1fr 1fr;gap:10px}:is(body,body.noite) .p-resumo>div:last-child{grid-column:1/-1}:is(body,body.noite) .p-resumo strong{font-size:16px}}

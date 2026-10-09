@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=8">
+<link rel="stylesheet" href="temas.css?v=9">
 </head>
 <body>
 <header>
@@ -342,6 +342,8 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <button class="link" id="entrarInicio" type="button" hidden>Já tenho uma conta</button>
 <button class="link fraco" id="importarInicio" type="button">Importar um backup</button>
 </section>
+<section id="bibliotecaTreinos" class="rotinas" aria-label="Escolher treino"></section>
+<div class="sessao-top" id="sessaoTop" hidden><button class="btn" id="voltarRotinas" type="button">← Todos os treinos</button><span class="small-note">Registro de hoje</span></div>
 <section class="week-card" aria-label="Atividade nesta semana"><div class="week-top"><strong>Sua semana</strong><span id="weekSummary">0 dias com atividade</span></div><div class="week-days" id="weekDays"></div></section>
 <h2 class="section-label">Treinos</h2>
 <nav id="abas" aria-label="Treinos"></nav>
@@ -416,8 +418,8 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 <div class="overlay" id="modalProfessor" hidden role="dialog" aria-modal="true" aria-labelledby="pTitulo">
  <div class="caixa prof-painel">
   <div class="p-top"><div><div class="eyebrow">ÁREA DO PROFESSOR</div><h2 id="pTitulo">Alunos e planos</h2><p>Treinos e refeições organizados para cada aluno.</p></div><button class="btn" id="btnFecharProf" type="button">Fechar</button></div>
-  <div class="p-layout"><aside class="p-sidebar"><div class="p-sidebar-head"><strong>Seus alunos</strong><span class="small-note" id="pTotal"></span></div><label class="small-note" for="profBusca">Buscar por nome ou e-mail</label><input id="profBusca" type="search" placeholder="Encontrar aluno…"><button class="btn" id="pAtualizar" type="button">Atualizar lista</button><div id="profPedidos"></div><div id="pAlunos"></div><div id="profLista" hidden></div></aside>
-  <main><div id="profMensagem" class="p-mensagem" role="status" aria-live="polite"></div><div id="pVazio" class="p-vazio">Selecione um aluno para criar ou editar seu plano.</div>
+  <div class="p-resumo"><div><span>Alunos cadastrados</span><strong id="pResumoTotal">—</strong></div><div><span>Aluno selecionado</span><strong id="pResumoAluno">Nenhum</strong></div><div><span>Fluxo de trabalho</span><strong>Preparar → Publicar</strong></div></div><div class="p-layout"><aside class="p-sidebar"><div class="p-sidebar-head"><strong>Seus alunos</strong><span class="small-note" id="pTotal"></span></div><label class="small-note" for="profBusca">Buscar por nome ou e-mail</label><input id="profBusca" type="search" placeholder="Encontrar aluno…"><button class="btn" id="pAtualizar" type="button">Atualizar lista</button><div id="profPedidos"></div><div id="pAlunos"></div><div id="profLista" hidden></div></aside>
+  <main><div id="profMensagem" class="p-mensagem" role="status" aria-live="polite"></div><div id="pVazio" class="p-vazio">Selecione um aluno na lista para consultar os treinos e preparar seu plano. As alterações ficam em rascunho até a publicação.</div>
    <div id="pEditor" hidden><div class="p-editor-head"><div><h3 id="pAlunoNome"></h3><span class="small-note" id="pAlunoEmail"></span></div><button class="btn" id="pExportar" type="button">Backup do rascunho</button></div>
     <div class="p-tabs" aria-label="Editor de planos"><button class="btn acc" id="pBtn-treino" type="button">Treinos</button><button class="btn" id="pBtn-ficha" type="button">Ficha</button><button class="btn" id="pBtn-alimentar" type="button">Alimentação</button><button class="btn" id="pBtn-previa" type="button">Prévia</button></div>
     <section id="pTab-treino"><div class="p-footer"><button class="btn" id="pAdicionarTreino" type="button">+ Novo treino</button><button class="btn" id="pCopiarMeus" type="button">Copiar meus treinos</button></div><div id="pTreinos"></div></section>
@@ -1664,7 +1666,58 @@ if(temConfig()){
   });
 }
 </script>
-<script src="professor.js?v=2"></script>
+
+<script>
+/* Biblioteca de rotinas e execução: mesma fonte de dados, duas vistas. */
+(function(){
+ let sessao=false;
+ const biblioteca=document.getElementById('bibliotecaTreinos');
+ const tools=document.createElement('details');tools.className='treino-ferramentas';
+ const sum=document.createElement('summary');sum.textContent='Vídeos e opções do treino';tools.appendChild(sum);
+ const lista=document.getElementById('lista');lista.after(tools);
+ for(const selector of ['.busca-vid','.rodape']){const e=document.querySelector(selector);if(e)tools.appendChild(e)}
+ const backups=document.querySelector('.acoesDados');
+ const profile=document.getElementById('modalPerfil').querySelector('.caixa');
+ const backupTitle=document.createElement('h3');backupTitle.className='perfil-dados-titulo';backupTitle.textContent='Cópia dos seus dados';profile.appendChild(backupTitle);profile.appendChild(backups);
+ const backupGuest=document.createElement('button');backupGuest.type='button';backupGuest.className='link fraco';backupGuest.textContent='Cópias e importação';
+ backupGuest.onclick=function(){document.getElementById('modalDados').hidden=false};
+ const modal=document.createElement('div');modal.className='overlay';modal.id='modalDados';modal.hidden=true;
+ const box=document.createElement('div');box.className='caixa';const title=document.createElement('h2');title.textContent='Seus dados';box.appendChild(title);
+ const note=document.createElement('p');note.className='small-note';note.textContent='Exporte uma cópia dos treinos e registros ou importe um backup existente.';box.appendChild(note);
+ for(const pair of [['Exportar backup','btnExportar'],['Importar backup','btnImportar']]){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=pair[0];b.onclick=()=>document.getElementById(pair[1]).click();box.appendChild(b)}
+ const close=document.createElement('button');close.className='link fraco';close.type='button';close.textContent='Fechar';close.onclick=()=>modal.hidden=true;box.appendChild(close);modal.appendChild(box);document.body.appendChild(modal);
+ document.getElementById('statusDados').before(backupGuest);
+ function atualizar(){
+  const keys=atualizarOrdem();biblioteca.replaceChildren();
+  const tem=Object.values(dados.treinos).some(a=>a.some(e=>String(e.nome||'').trim()));
+  const overview=!sessao&&!editando;
+  document.body.classList.toggle('modo-biblioteca',overview);
+  biblioteca.hidden=!overview||!tem;
+  document.getElementById('sessaoTop').hidden=overview||editando;
+  backupGuest.hidden=!!usuario||editando;
+  tools.hidden=overview||editando||!itens().length;
+  if(overview&&tem)keys.forEach(t=>{
+   const exs=dados.treinos[t].filter(e=>String(e.nome||'').trim());
+   if(!exs.length)return;
+   const card=document.createElement('button');card.type='button';card.className='rotina-card';
+   const label=document.createElement('span');label.className='rotina-letra';label.textContent=t;
+   const text=document.createElement('span');text.className='rotina-conteudo';
+   const name=document.createElement('strong');name.textContent=nomeDo(t);
+   const meta=document.createElement('span');meta.className='rotina-meta';meta.textContent=exs.length+' exercícios · '+exs.reduce((n,e)=>n+nSeriesDe(e),0)+' séries';
+   const preview=document.createElement('small');preview.textContent=exs.slice(0,3).map(e=>e.nome).join(' · ')+(exs.length>3?'…':'');
+   text.append(name,meta,preview);
+   const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent='Abrir treino →';
+   card.append(label,text,arrow);card.onclick=()=>{treinoAtual=t;sessao=true;render();window.scrollTo({top:0,behavior:'smooth'})};biblioteca.appendChild(card);
+  });
+ }
+ const original=render;render=function(){original();atualizar()};
+ const edit=document.getElementById('btnEditar'),oldEdit=edit.onclick;
+ edit.onclick=function(){sessao=true;oldEdit.call(this)};
+ document.getElementById('voltarRotinas').onclick=function(){sessao=false;tools.open=false;render();window.scrollTo({top:0,behavior:'smooth'})};
+ atualizar();
+})();
+</script>
+<script src="professor.js?v=3"></script>
 </body>
 </html>
 
