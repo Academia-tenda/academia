@@ -17,19 +17,28 @@ service cloud.firestore {
     function linked(uid) {
       return exists(/databases/$(database)/documents/vinculos/$(uid))
         && get(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == true
-        && get(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == request.auth.uid;
+        && get(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == request.auth.uid
+        && get(/databases/$(database)/documents/perfis/$(uid)).data.professorUid == request.auth.uid;
     }
     function canCoach(uid) {
       return owner() || (professional() && (!linksEnabled() || linked(uid)));
     }
-    function profileLinkValid(uid) {
-      let desired = request.resource.data.get('professorUid', '');
-      return desired == resource.data.get('professorUid', '')
-        || (desired == '' && (!existsAfter(/databases/$(database)/documents/vinculos/$(uid))
-          || getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == false))
-        || (existsAfter(/databases/$(database)/documents/vinculos/$(uid))
-          && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == true
-          && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == desired);
+    function free(uid) {
+      return get(/databases/$(database)/documents/perfis/$(uid)).data.get('professorUid', '') == ''
+        && (!exists(/databases/$(database)/documents/vinculos/$(uid))
+          || get(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == false);
+    }
+    function eligible(uid) {
+      return professional() && linksEnabled() && uid != request.auth.uid
+        && exists(/databases/$(database)/documents/perfis/$(uid))
+        && get(/databases/$(database)/documents/perfis/$(uid)).data.role == 'aluno';
+    }
+    function assignedAfter(uid, active) {
+      return existsAfter(/databases/$(database)/documents/vinculos/$(uid))
+        && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == active
+        && getAfter(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/perfis/$(uid)).data.professorUid
+          == (active ? request.auth.uid : '');
     }
     match /config/vinculos {
       allow get: if signed();
@@ -47,49 +56,49 @@ service cloud.firestore {
       allow create: if signed() && request.auth.uid == uid && uid != '_adm'
         && request.resource.data.uid == uid && request.resource.data.role == 'aluno'
         && !request.resource.data.keys().hasAny(['professorUid']);
-      allow get: if signed() && (request.auth.uid == uid || canCoach(uid));
+      allow get: if signed() && uid != '_adm' && (request.auth.uid == uid || owner()
+        || (professional() && (resource.data.role == 'aluno' || canCoach(uid))));
       allow list: if professional() && (owner() || !linksEnabled()
-        || resource.data.get('professorUid', '') == request.auth.uid);
+        || resource.data.role == 'aluno' || resource.data.get('professorUid', '') == request.auth.uid);
       allow update: if signed() && request.auth.uid == uid && uid != '_adm'
         && request.resource.data.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'email', 'role', 'professorUid'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'email', 'role'])
         && (request.resource.data.role == resource.data.role
           || (resource.data.role in ['aluno', 'pendente'] && request.resource.data.role in ['aluno', 'pendente']))
-        && profileLinkValid(uid);
+        ;
       allow update: if owner() && uid != '_adm'
         && request.resource.data.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'email', 'role'])
         && request.resource.data.role in ['aluno', 'pendente', 'professor', 'dono']
         && (request.resource.data.role != 'dono' || uid == request.auth.uid);
     }
-    match /convitesProfessor/{code} {
-      allow get: if signed();
-      allow create, update: if professional() && code == request.auth.uid
-        && request.resource.data.keys().hasOnly(['professorUid', 'professorNome', 'ativo'])
+    match /perfis/{uid} {
+      allow update: if eligible(uid) && request.resource.data.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['professorUid'])
+        && ((free(uid) && assignedAfter(uid, true))
+          || (resource.data.get('professorUid', '') == request.auth.uid
+            && exists(/databases/$(database)/documents/vinculos/$(uid))
+            && get(/databases/$(database)/documents/vinculos/$(uid)).data.ativo == true
+            && get(/databases/$(database)/documents/vinculos/$(uid)).data.professorUid == request.auth.uid
+            && assignedAfter(uid, false)));
+    }
+    match /vinculos/{uid} {
+      // Metadados do vínculo podem ser consultados para conferir disponibilidade.
+      allow get: if signed() && (request.auth.uid == uid || professional());
+      allow create, update: if eligible(uid) && free(uid) && assignedAfter(uid, true)
+        && request.resource.data.keys().hasOnly(['alunoUid', 'professorUid', 'professorNome', 'ativo', 'atribuidoEm'])
+        && request.resource.data.alunoUid == uid
         && request.resource.data.professorUid == request.auth.uid
         && request.resource.data.professorNome is string
         && request.resource.data.professorNome.size() <= 160
-        && request.resource.data.ativo is bool;
-    }
-    match /vinculos/{uid} {
-      allow get: if signed() && (request.auth.uid == uid || owner()
-        || resource.data.professorUid == request.auth.uid);
-      allow create, update: if signed() && request.auth.uid == uid && linksEnabled()
-        && request.resource.data.keys().hasOnly(['alunoUid', 'professorUid', 'professorNome', 'ativo', 'convite', 'aceitoEm'])
-        && request.resource.data.alunoUid == uid
-        && request.resource.data.professorUid != uid
-        && request.resource.data.professorNome is string
-        && request.resource.data.professorNome.size() <= 160
-        && request.resource.data.aceitoEm is number
-        && request.resource.data.ativo is bool
-        && (request.resource.data.ativo == false
-          || (exists(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite))
-            && get(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite)).data.ativo == true
-            && get(/databases/$(database)/documents/convitesProfessor/$(request.resource.data.convite)).data.professorUid == request.resource.data.professorUid
-            && exists(/databases/$(database)/documents/perfis/$(request.resource.data.professorUid))
-            && get(/databases/$(database)/documents/perfis/$(request.resource.data.professorUid)).data.role in ['professor', 'dono']))
-        && getAfter(/databases/$(database)/documents/perfis/$(uid)).data.professorUid
-          == (request.resource.data.ativo ? request.resource.data.professorUid : '');
+        && request.resource.data.atribuidoEm is number
+        && request.resource.data.ativo == true;
+      // Aceita vínculos antigos, mas só o instrutor atual pode liberá-los.
+      allow update: if eligible(uid) && resource.data.ativo == true
+        && resource.data.professorUid == request.auth.uid
+        && get(/databases/$(database)/documents/perfis/$(uid)).data.professorUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ativo'])
+        && request.resource.data.ativo == false && assignedAfter(uid, false);
     }
     match /usuarios/{uid} {
       allow get: if signed() && (request.auth.uid == uid || canCoach(uid));

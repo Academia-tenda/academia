@@ -479,3 +479,13 @@ body.modo-biblioteca .sessao-ajuda,body.editando .sessao-ajuda,body.sem-treinos 
 /* Execução com ações secundárias recolhidas e alvos de toque maiores. */
 .exercise-extra{margin-top:10px}.exercise-extra summary{cursor:pointer;min-height:36px;font-size:12px;color:var(--secundario);padding:6px 0}.exercise-extra[open]{padding-bottom:4px}.exercise-extra button{margin:6px 8px 0 0}.previous-load{font-size:12px;color:var(--secundario);display:block;flex-basis:100%}.vinculo-perfil{padding:18px 0;margin:12px 0;border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}.vinculo-perfil h3{font-size:17px;margin:0 0 10px}.vinculo-perfil .btn{margin:8px 8px 0 0}.vinculo-perfil input{width:100%;min-height:48px;box-sizing:border-box;padding:12px;font-size:16px}.vinculo-perfil code{display:block;overflow-wrap:anywhere;font-size:13px;background:var(--campo);padding:12px;border-radius:8px}.plan-history{margin:20px 0;padding:18px;border:1px solid var(--linha);border-radius:12px;background:var(--superficie)}.plan-history summary{min-height:44px;cursor:pointer;padding:10px 0;font-weight:600}.plan-version{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--linha)}.plan-dates{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.plan-dates span{padding:8px 12px;background:var(--campo);border-radius:6px;font-size:13px}.plan-date-help{margin:12px 0;color:var(--secundario);font-size:13px}
 @media(max-width:760px){:is(body,body.noite) #lista .item{padding:18px;gap:12px}:is(body,body.noite) #lista .check{width:44px;height:44px;min-width:44px}.exercise-extra summary{min-height:44px}.exercise-extra button{min-height:44px!important}.previous-load{line-height:1.6}.plan-version{align-items:stretch;flex-direction:column}.plan-version .btn{width:100%}.vinculo-perfil .btn{min-height:48px}.plan-dates{flex-direction:column}}
+
+/* Gestão da carteira: ações separadas do botão de abrir o aluno. */
+.carteira-directory summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650}
+.carteira-directory label{display:grid;gap:8px;margin:12px 0}
+.carteira-candidato{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda,#ddd)}
+.carteira-candidato>div{min-width:0;display:grid;gap:4px}
+.carteira-candidato small{overflow-wrap:anywhere;color:var(--muted,#777)}
+.carteira-candidato button{min-height:44px;flex-shrink:0}
+.carteira-disponiveis{max-height:360px;overflow:auto}
+.carteira-liberar{width:100%;min-height:44px;margin:0 0 14px;font-size:.85rem}

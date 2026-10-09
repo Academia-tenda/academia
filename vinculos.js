@@ -1,21 +1,69 @@
-/* Vínculos ativados somente após a configuração das regras pelo responsável. */
+/* Carteiras geridas pelo instrutor, com atribuição exclusiva em transação. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id),node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
 let enabled=false,checkedFor=null,checking=null,uiVersion=0;
+const busy=new Set();
 function button(text,fn){const b=node('button','btn',text);b.type='button';b.onclick=fn;return b}
-function isProfessional(){return !!usuario&&['professor','dono'].includes(meuPerfil)}
+function professional(){return !!usuario&&['professor','dono'].includes(meuPerfil)}
 async function check(){if(!usuario){enabled=false;checkedFor=null;return false}const uid=usuario.uid;if(checkedFor===uid)return enabled;if(checking)return checking;checking=(async()=>{try{const fb=await getFB(),s=await fb.F.getDoc(fb.F.doc(fb.db,'config','vinculos'));if(usuario?.uid===uid){enabled=s.exists()&&s.data().ativo===true;checkedFor=uid}}catch(e){if(usuario?.uid===uid){enabled=false;checkedFor=uid}}finally{checking=null}return enabled})();return checking}
 function active(){return enabled&&checkedFor===usuario?.uid}
 function status(root,text,error){let message=root.querySelector('.vinculo-status');if(!message){message=node('p','small-note vinculo-status');message.setAttribute('role','status');root.append(message)}message.textContent=text;message.classList.toggle('erro',!!error)}
-async function show(){const ticket=++uiVersion;const root=$('vinculoPerfil');root.replaceChildren();root.hidden=true;if(!usuario)return;const uid=usuario.uid;await check();if(usuario?.uid!==uid||ticket!==uiVersion)return;if(!active()){if(meuPerfil==='dono'){root.hidden=false;root.append(node('h3','','Carteiras de alunos'),node('p','small-note','A ativação restringe cada professor aos alunos que aceitam seu convite. Ative depois de publicar as regras de vínculos no Firebase.'),button('Ativar carteiras por convite',async()=>{if(!confirm('As novas regras de vínculos já foram publicadas? A ativação muda o acesso dos professores para os alunos vinculados.'))return;try{const fb=await getFB();await fb.F.setDoc(fb.F.doc(fb.db,'config','vinculos'),{ativo:true,ativadoPor:uid,ativadoEm:Date.now()});checkedFor=null;await check();await show();status(root,'Carteiras ativadas. Cada aluno precisa aceitar o convite do professor.')}catch(e){status(root,'Não foi ativado. Publique primeiro o arquivo firestore-vinculos.rules na aba Regras do Firestore.',true)}}))}return}
- root.hidden=false;if(isProfessional()){await teacher(root);return}root.append(node('h3','','Meu professor'));try{const fb=await getFB(),snap=await fb.F.getDoc(fb.F.doc(fb.db,'vinculos',uid));if(usuario?.uid!==uid||ticket!==uiVersion)return;const link=snap.exists()?snap.data():null;if(link?.ativo){root.append(node('p','','Acompanhamento com '+(link.professorNome||'seu professor')),node('p','small-note','Esse professor pode consultar seus registros e preparar seus planos.'),button('Encerrar acompanhamento',async()=>{if(!confirm('Encerrar o vínculo? Seu histórico e seus planos permanecem na conta, e o professor perde o acesso de acompanhamento.'))return;try{await fb.F.runTransaction(fb.db,async tx=>{const ref=fb.F.doc(fb.db,'vinculos',uid),s=await tx.get(ref);if(usuario?.uid!==uid)throw Error('Conta alterada');if(s.exists())tx.update(ref,{ativo:false});tx.update(fb.F.doc(fb.db,'perfis',uid),{professorUid:''})});await show()}catch(e){status(root,'Não foi possível encerrar. Tente novamente.',true)}}));return}}catch(e){status(root,'Não foi possível consultar seu vínculo.',true);return}
- const label=node('label');label.append(node('span','','Código de convite'));const input=node('input');input.type='text';input.placeholder='Cole o código recebido';input.setAttribute('aria-label','Código de convite do professor');label.append(input);root.append(node('p','small-note','Ter um professor é opcional. Ao aceitar um convite, você permite que ele acompanhe seus registros e prepare seus planos.'),label,button('Consultar convite',async()=>{const code=input.value.trim();if(!/^[A-Za-z0-9_-]{10,128}$/.test(code)){status(root,'Cole um código de convite válido.',true);return}try{const fb=await getFB(),ref=fb.F.doc(fb.db,'convitesProfessor',code),snap=await fb.F.getDoc(ref);if(usuario?.uid!==uid)return;if(!snap.exists()||snap.data().ativo!==true||snap.data().professorUid===uid){status(root,'Convite indisponível.',true);return}const invite=snap.data();if(!confirm('Aceitar acompanhamento de '+(invite.professorNome||'este professor')+'? Ele poderá consultar seus registros e publicar planos para você.'))return;await fb.F.runTransaction(fb.db,async tx=>{const current=await tx.get(ref),linkRef=fb.F.doc(fb.db,'vinculos',uid),existing=await tx.get(linkRef);if(!current.exists()||!current.data().ativo||current.data().professorUid!==invite.professorUid)throw Error('Convite mudou');if(existing.exists()&&existing.data().ativo)throw Error('Encerre o vínculo atual antes de aceitar outro convite.');if(usuario?.uid!==uid)throw Error('Conta alterada');tx.set(linkRef,{alunoUid:uid,professorUid:invite.professorUid,professorNome:invite.professorNome||'Professor',ativo:true,convite:code,aceitoEm:Date.now()});tx.update(fb.F.doc(fb.db,'perfis',uid),{professorUid:invite.professorUid})});await show();status(root,'Acompanhamento aceito. Seu professor pode atualizar a lista de alunos.')}catch(e){status(root,'Não foi possível aceitar o convite. '+(e.message||'Tente novamente.'),true)}}));
+async function assign(aluno){
+ if(!active()||!professional())throw Error('Entre como instrutor.');
+ const uid=usuario.uid,fb=await getFB();
+ await fb.F.runTransaction(fb.db,async tx=>{
+  const profileRef=fb.F.doc(fb.db,'perfis',aluno.uid),linkRef=fb.F.doc(fb.db,'vinculos',aluno.uid);
+  const profile=await tx.get(profileRef),link=await tx.get(linkRef);
+  if(usuario?.uid!==uid||!professional())throw Error('A conta mudou.');
+  if(!profile.exists()||profile.data().uid!==aluno.uid||profile.data().role!=='aluno'||aluno.uid===uid)throw Error('Este usuário não está disponível como aluno.');
+  if(profile.data().professorUid||(link.exists()&&link.data().ativo))throw Error('Este aluno já tem um professor. Atualize a lista.');
+  tx.set(linkRef,{alunoUid:aluno.uid,professorUid:uid,professorNome:usuario.displayName||'Instrutor',ativo:true,atribuidoEm:Date.now()});
+  tx.update(profileRef,{professorUid:uid});
+ });
+ window.dispatchEvent(new CustomEvent('tenda:carteira-alterada',{detail:{uid:aluno.uid,acao:'adicionado'}}));
 }
-async function teacher(root){if(!active()||!isProfessional())return;root.replaceChildren();root.hidden=false;const uid=usuario.uid;root.append(node('h3','','Convidar meus alunos'),node('p','small-note','Compartilhe o código com quem deseja acompanhar. O aluno aceita em Perfil → Meu professor.'));const code=node('code');code.textContent=uid;root.append(code,button('Disponibilizar convite',async()=>{if(!usuario||usuario.uid!==uid||!isProfessional())return;try{const fb=await getFB();await fb.F.setDoc(fb.F.doc(fb.db,'convitesProfessor',uid),{professorUid:uid,professorNome:usuario.displayName||'Professor',ativo:true});status(root,'Convite disponível. O aluno precisa aceitar antes de aparecer na sua carteira.')}catch(e){status(root,'Não foi possível disponibilizar o convite.',true)}}));}
-async function renderTeacher(){const root=$('pConviteProfessor');root.hidden=true;if(!usuario)return;await check();if(active()&&isProfessional())await teacher(root)}
+async function release(aluno){
+ if(!active()||!professional()||busy.has(aluno.uid))return false;
+ if(!confirm('Liberar '+(aluno.nome||'este aluno')+' da sua carteira? Você perde o acesso ao acompanhamento. Os treinos, planos e registros permanecem na conta dele.'))return false;
+ busy.add(aluno.uid);const uid=usuario.uid;
+ try{const fb=await getFB();await fb.F.runTransaction(fb.db,async tx=>{
+  const profileRef=fb.F.doc(fb.db,'perfis',aluno.uid),linkRef=fb.F.doc(fb.db,'vinculos',aluno.uid);
+  const profile=await tx.get(profileRef),link=await tx.get(linkRef);
+  if(usuario?.uid!==uid||!professional())throw Error('A conta mudou.');
+  if(!profile.exists()||!link.exists()||!link.data().ativo||link.data().professorUid!==uid||profile.data().professorUid!==uid)throw Error('Este aluno não está na sua carteira. Atualize a lista.');
+  tx.update(linkRef,{ativo:false});tx.update(profileRef,{professorUid:''});
+ });window.dispatchEvent(new CustomEvent('tenda:carteira-alterada',{detail:{uid:aluno.uid,acao:'liberado'}}));return true;
+ }finally{busy.delete(aluno.uid)}
+}
+async function teacher(root){
+ if(!active()||!professional())return;root.replaceChildren();root.hidden=false;
+ root.append(node('h3','','Minha carteira'),node('p','small-note','Adicione usuários sem professor. Cada aluno pode ter apenas um instrutor por vez.'));
+ const details=node('details','carteira-directory');details.append(node('summary','','Adicionar aluno'));
+ const label=node('label');label.append(node('span','small-note','Buscar usuário disponível'));
+ const input=node('input');input.type='search';input.placeholder='Nome ou e-mail';input.setAttribute('aria-label','Buscar usuário disponível');label.append(input);
+ const list=node('div','carteira-disponiveis'),message=node('p','small-note');message.setAttribute('role','status');details.append(label,message,list);root.append(details);
+ const account=usuario.uid;let loading=false,loaded=false,available=[];
+ function draw(){list.replaceChildren();const q=input.value.trim().toLowerCase(),matches=available.filter(a=>(String(a.nome||'')+' '+String(a.email||'')).toLowerCase().includes(q));message.textContent=matches.length+' usuários disponíveis';
+  for(const a of matches.slice(0,50)){const row=node('div','carteira-candidato'),info=node('div');info.append(node('strong','',a.nome||'Aluno'),node('small','',a.email||''));const add=button('Adicionar',async()=>{
+   if(busy.has(a.uid)||usuario?.uid!==account)return;busy.add(a.uid);add.disabled=true;
+   try{await assign(a);available=available.filter(v=>v.uid!==a.uid);draw();status(root,(a.nome||'Aluno')+' adicionado à sua carteira.');}
+   catch(e){status(root,e.code==='permission-denied'?'Não foi possível adicionar. O usuário pode já estar com outro professor. Atualize a lista.':e.message||'Não foi possível adicionar.',true);add.disabled=false;}
+   finally{busy.delete(a.uid)}
+  });add.setAttribute('aria-label','Adicionar '+(a.nome||a.email||'aluno')+' à minha carteira');row.append(info,add);list.append(row)}
+  if(matches.length>50)list.append(node('p','small-note','Digite um nome para refinar a busca.'));
+ }
+ async function load(){if(loading||usuario?.uid!==account)return;loading=true;message.textContent='Consultando usuários disponíveis…';try{const fb=await getFB(),snap=await fb.F.getDocs(fb.F.query(fb.F.collection(fb.db,'perfis'),fb.F.where('role','==','aluno')));if(usuario?.uid!==account||!professional())return;available=[];snap.forEach(d=>{const a=d.data();if(a.uid&&a.uid!==account&&a.role==='aluno'&&!a.professorUid)available.push(a)});available.sort((a,b)=>String(a.nome||a.email||'').localeCompare(String(b.nome||b.email||'')));loaded=true;draw()}catch(e){message.textContent='Não foi possível consultar usuários. Tente atualizar.'}finally{loading=false}}
+ input.oninput=draw;details.ontoggle=()=>{if(details.open&&!loaded)load()};details.append(button('Atualizar disponíveis',load));
+}
+async function show(){const ticket=++uiVersion,root=$('vinculoPerfil');root.replaceChildren();root.hidden=true;if(!usuario)return;const uid=usuario.uid;await check();if(usuario?.uid!==uid||ticket!==uiVersion||!active())return;root.hidden=false;if(professional()){await teacher(root);return}
+ root.append(node('h3','','Meu instrutor'));try{const fb=await getFB(),snap=await fb.F.getDoc(fb.F.doc(fb.db,'vinculos',uid));if(usuario?.uid!==uid||ticket!==uiVersion)return;const link=snap.exists()?snap.data():null;
+  root.append(node('p','',link?.ativo?'Acompanhamento com '+(link.professorNome||'seu instrutor'):'Você está sem instrutor.'),node('p','small-note',link?.ativo?'Seu instrutor pode acompanhar seus registros e publicar planos. Ele também gerencia sua entrada e saída da carteira.':'Você pode continuar treinando por conta própria. Um instrutor pode adicionar você à carteira enquanto estiver disponível.'));
+ }catch(e){status(root,'Não foi possível consultar seu acompanhamento.',true)}
+}
+async function renderTeacher(){const root=$('pConviteProfessor');root.hidden=true;if(!usuario)return;await check();if(active()&&professional())await teacher(root)}
 const previousProfile=abrirPerfil;abrirPerfil=function(){previousProfile();show()};
 const previousRole=atualizarCargoPerfil;atualizarCargoPerfil=function(){previousRole();if(!$('modalPerfil').hidden)show()};
 const previousAccount=atualizaBotaoConta;atualizaBotaoConta=function(){previousAccount();if(!usuario||checkedFor!==usuario.uid){enabled=false;checkedFor=null;$('vinculoPerfil').replaceChildren();$('vinculoPerfil').hidden=true;$('pConviteProfessor').replaceChildren();$('pConviteProfessor').hidden=true}};
-window.TendaVinculos={check,ativo:active,renderTeacher};
+window.TendaVinculos={check,ativo:active,renderTeacher,assign,release};
 })();
