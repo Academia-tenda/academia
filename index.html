@@ -310,7 +310,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #modalProfessor .caixa{max-width:560px}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=9">
+<link rel="stylesheet" href="temas.css?v=10">
 </head>
 <body>
 <header>
@@ -897,7 +897,7 @@ function render(){
     inNome.oninput=function(){ex.nome=inNome.value;salvar()};
     inS.oninput=function(){ex.series=inS.value;salvar()};
     inR.oninput=function(){ex.reps=inR.value;salvar()};
-    inNome.onblur=atualizaProgresso; inS.onblur=render; inR.onblur=render;
+    inNome.onblur=atualizaProgresso; inS.onblur=atualizaProgresso; inR.onblur=atualizaProgresso;
     ed.querySelector('.del').onclick=function(){
       dados.treinos[treinoAtual]=dados.treinos[treinoAtual].filter(function(e){return e.id!==ex.id});
       const f=feitos(), i=f.indexOf(ex.id); if(i>-1)f.splice(i,1);
@@ -1703,7 +1703,7 @@ if(temConfig()){
    const label=document.createElement('span');label.className='rotina-letra';label.textContent=t;
    const text=document.createElement('span');text.className='rotina-conteudo';
    const name=document.createElement('strong');name.textContent=nomeDo(t);
-   const meta=document.createElement('span');meta.className='rotina-meta';meta.textContent=exs.length+' exercícios · '+exs.reduce((n,e)=>n+nSeriesDe(e),0)+' séries';
+   const meta=document.createElement('span');meta.className='rotina-meta';meta.textContent=exs.length+(exs.length===1?' exercício · ':' exercícios · ')+exs.reduce((n,e)=>n+nSeriesDe(e),0)+' séries';
    const preview=document.createElement('small');preview.textContent=exs.slice(0,3).map(e=>e.nome).join(' · ')+(exs.length>3?'…':'');
    text.append(name,meta,preview);
    const arrow=document.createElement('span');arrow.className='rotina-abrir';arrow.textContent='Abrir treino →';

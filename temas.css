@@ -195,3 +195,5 @@ body:not(.modo-biblioteca) .welcome,body:not(.modo-biblioteca) .week-card,body:n
 :is(body,body.noite) .p-resumo span{display:block;font-size:11px;color:var(--secundario);margin-bottom:8px}
 :is(body,body.noite) .p-resumo strong{font-size:18px;font-weight:600;overflow-wrap:anywhere}
 @media(max-width:760px){:is(body,body.noite) .rotinas{grid-template-columns:1fr;margin:0 20px 24px;gap:12px}:is(body,body.noite) .rotina-card{padding:20px}:is(body,body.noite) .sessao-top,:is(body,body.noite) .treino-ferramentas{margin-left:20px;margin-right:20px}:is(body,body.noite) .p-resumo{grid-template-columns:1fr 1fr;gap:10px}:is(body,body.noite) .p-resumo>div:last-child{grid-column:1/-1}:is(body,body.noite) .p-resumo strong{font-size:16px}}
+
+:is(body,body.noite) .rotinas:has(>.rotina-card:only-child){grid-template-columns:minmax(0,1fr);max-width:680px}
