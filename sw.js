@@ -1,5 +1,5 @@
-const CACHE='academia-v77-managed-students';
-const ESSENCIAIS=['./','./index.html','./temas.css?v=24','./professor.css?v=1','./professor.js?v=12','./evolucao-professor.js?v=4','./rotina.js?v=3','./planos.js?v=1','./vinculos.js?v=2','./pwa.js?v=3','./conta.js?v=1','./fotos.js','./firebase-config.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png'];
+const CACHE='academia-v78-exercise-sets';
+const ESSENCIAIS=['./','./index.html','./temas.css?v=25','./professor.css?v=1','./professor.js?v=12','./evolucao-professor.js?v=5','./rotina.js?v=4','./planos.js?v=1','./vinculos.js?v=2','./pwa.js?v=3','./conta.js?v=1','./fotos.js','./firebase-config.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-512-maskable.png'];
 const OPCIONAIS=['./img/tenda-gym.jpg','./img/logo_tenda.png','./img/logo_tenda_branco.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(ESSENCIAIS.map(u=>new Request(u,{cache:'reload'})));await Promise.allSettled(OPCIONAIS.map(u=>c.add(new Request(u,{cache:'reload'}))))})())});
 self.addEventListener('message',e=>{if(e.data&&e.data.type==='SKIP_WAITING')self.skipWaiting()});
@@ -13,3 +13,4 @@ self.addEventListener('fetch',e=>{
  if(req.mode==='navigate'){e.respondWith((async()=>{const c=await caches.open(CACHE);try{const r=await fetch(req);if(r.ok)await c.put(req,r.clone());if(r.ok)return r;const cached=await c.match('./index.html');return cached||r}catch(err){return await c.match(req)||await c.match('./index.html')||new Response('Abra o aplicativo com conexão à internet uma vez para preparar o modo offline.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}})}})());return}
  e.respondWith((async()=>{const c=await caches.open(CACHE),cached=await c.match(req);if(cached)return cached;try{const r=await fetch(req);if(r.ok&&r.type!=='opaque')await c.put(req,r.clone());return r}catch(err){return new Response('',{status:503})}})());
 });
+

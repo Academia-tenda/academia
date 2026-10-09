@@ -314,7 +314,7 @@ body.noite .prof-row .p-info span{color:#94a3b8}
 #syncEstado{font-size:11px;color:#85858d;font-weight:400;white-space:nowrap}#syncEstado[data-estado="erro"]{color:#b64b21}@media(max-width:600px){#syncEstado{width:100%;text-align:right;font-size:10px}}
 </style>
 <link rel="stylesheet" href="professor.css?v=1">
-<link rel="stylesheet" href="temas.css?v=24">
+<link rel="stylesheet" href="temas.css?v=25">
 </head>
 <body>
 <header>
@@ -682,7 +682,8 @@ function migrarConclusoes(j){
  for(const [d,ts] of Object.entries(j.concluidos)){for(const t of Object.keys(j.treinos||{})){if(ts&&ts[t]&&ts[t]!=='manual'){if(!j.progresso[d])j.progresso[d]={};j.progresso[d][t]=(j.treinos[t]||[]).filter(e=>String(e.nome||'').trim()).map(e=>e.id);delete ts[t]}}}
  return j;
 }
-function diaAtivo(d){return Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)||Object.values((dados.concluidos||{})[d]||{}).some(v=>v==='manual')}
+function seriesAtivas(d){return Object.values(dados.seriesFeitas?.[d]||{}).some(t=>Object.values(t||{}).some(a=>Array.isArray(a)&&a.length))}
+function diaAtivo(d){return seriesAtivas(d)|| Object.values(dados.progresso[d]||{}).some(a=>Array.isArray(a)&&a.length)||Object.values((dados.concluidos||{})[d]||{}).some(v=>v==='manual')}
 function treinoCompleto(){const a=itens();return a.length>0&&a.every(e=>feitos().includes(e.id))}
 
 
@@ -756,6 +757,7 @@ function carregar(){
   if(!Object.keys(j.treinos).length){j.treinos.A=[]}
   if(!j.progresso||typeof j.progresso!=='object')j.progresso={};
   if(!j.pesos||typeof j.pesos!=='object')j.pesos={};
+  if(!j.seriesFeitas||typeof j.seriesFeitas!=='object')j.seriesFeitas={};
   if(!j.medidas||typeof j.medidas!=='object')j.medidas={altura:'',pesos:{}};
   if(!j.nomes||typeof j.nomes!=='object')j.nomes={};
   if(!j.concluidos||typeof j.concluidos!=='object')j.concluidos={};
@@ -782,6 +784,22 @@ function feitos(){
   if(!Array.isArray(dados.progresso[h][treinoAtual]))dados.progresso[h][treinoAtual]=[];
   return dados.progresso[h][treinoAtual];
 }
+function sessaoConcluida(){return dados.concluidos?.[hoje()]?.[treinoAtual]==='manual'}
+function seriesDoDia(ex){
+ const list=dados.seriesFeitas?.[hoje()]?.[treinoAtual]?.[ex.id];
+ // Exercícios marcados antes deste recurso continuam com todas as séries feitas.
+ return Array.isArray(list)?list.filter(v=>Number(v)>=1&&Number(v)<=nSeriesDe(ex)):
+   feitos().includes(ex.id)?Array.from({length:nSeriesDe(ex)},(_,i)=>String(i+1)):[];
+}
+function marcarSeries(ex,list){
+ if(sessaoConcluida())return;
+ dados.seriesFeitas=dados.seriesFeitas||{};const d=hoje();
+ dados.seriesFeitas[d]=dados.seriesFeitas[d]||{};dados.seriesFeitas[d][treinoAtual]=dados.seriesFeitas[d][treinoAtual]||{};
+ dados.seriesFeitas[d][treinoAtual][ex.id]=list;
+ const f=feitos(),i=f.indexOf(ex.id),complete=list.length===nSeriesDe(ex);
+ if(complete&&i<0)f.push(ex.id);else if(!complete&&i>=0)f.splice(i,1);
+ salvar();render();
+}
 function itens(){return dados.treinos[treinoAtual].filter(function(e){return e.nome.trim()})}
 function atualizaProgresso(){
   const total=itens().length, n=feitos().filter(function(f){return itens().some(function(e){return e.id===f})}).length;
@@ -790,7 +808,7 @@ function atualizaProgresso(){
   document.getElementById('progTexto').textContent=n+'/'+total+' ('+pct+'%)';
  const completo=!!(dados.concluidos[hoje()]&&dados.concluidos[hoje()][treinoAtual]==='manual');
  const b=document.getElementById('btnConcluir');b.disabled=!total;b.textContent=completo?'Reabrir treino de hoje':'Concluir treino de hoje';b.setAttribute('aria-pressed',String(completo));b.classList.toggle('acc',!completo);
- document.getElementById('sessaoAjuda').textContent=completo?'Treino concluído com '+n+' de '+total+' exercícios marcados. Você pode reabrir ou ajustar as marcações.':'Marque os exercícios realizados. Você pode concluir mesmo com exercícios pendentes.';
+ document.getElementById('sessaoAjuda').textContent=completo?'Treino concluído com '+n+' de '+total+' exercícios marcados. Reabra o treino para alterar as marcações.':'Marque os exercícios realizados. Você pode concluir mesmo com exercícios pendentes.';
  document.getElementById('dataTexto').textContent=new Date().toLocaleDateString('pt-BR');
 }
 function atualizarInicio(){
@@ -842,6 +860,7 @@ function render(){
   }
   arr.forEach(function(ex){
     const li=document.createElement('li');
+    li.dataset.exercicioId=String(ex.id);
     li.className='item'+(feitosArr.indexOf(ex.id)>-1?' done':'');
     if(editando){
       li.ondragover=function(ev){if(ev.dataTransfer.types.includes('application/x-tenda-exercicio')){ev.preventDefault();li.classList.add('ordem-alvo')}};
@@ -853,11 +872,11 @@ function render(){
     chk.textContent='✓';
     chk.setAttribute('aria-label',(feitosArr.includes(ex.id)?'Desmarcar ':'Concluir ')+ex.nome);
     chk.setAttribute('aria-pressed',String(feitosArr.indexOf(ex.id)>-1));
+    chk.disabled=sessaoConcluida();
+    chk.title=chk.disabled?'Reabra o treino para alterar as marcações':'';
     chk.onclick=function(){
-      const f=feitos(), i=f.indexOf(ex.id);
-      if(i>-1)f.splice(i,1); else f.push(ex.id);
-      if(dados.concluidos[hoje()])delete dados.concluidos[hoje()][treinoAtual];
-      salvar(); render();
+      if(sessaoConcluida())return;
+      marcarSeries(ex,feitos().includes(ex.id)?[]:Array.from({length:nSeriesDe(ex)},(_,i)=>String(i+1)));
     };
     const info=document.createElement('div');
     info.className='info';
@@ -890,10 +909,16 @@ function render(){
     sp.className='seriespeso';
     const nS=nSeriesDe(ex);
     for(let s=0;s<nS;s++){
-      const lab=document.createElement('label');
+      const lab=document.createElement('div');
       lab.className='sp';
       const num=document.createElement('b');
-      num.textContent=String(s+1);
+      num.textContent='Série '+String(s+1);
+      const series=seriesDoDia(ex),marked=series.includes(String(s+1));
+      const check=document.createElement('button');check.type='button';check.className='serie-check'+(marked?' marcada':'');check.textContent='✓';
+      check.setAttribute('aria-label',(marked?'Desmarcar':'Concluir')+' série '+(s+1)+' de '+ex.nome);check.setAttribute('aria-pressed',String(marked));check.disabled=sessaoConcluida();
+      check.title=check.disabled?'Reabra o treino para alterar as marcações':'';
+      check.onclick=()=>{if(sessaoConcluida())return;const list=seriesDoDia(ex),key=String(s+1);marcarSeries(ex,list.includes(key)?list.filter(v=>v!==key):[...list,key])};
+      lab.classList.toggle('serie-feita',marked);lab.appendChild(check);
       const inp=document.createElement('input');
       inp.type='text'; inp.inputMode='decimal';
       const referencia=anterior&&(Array.isArray(anterior.ps)?anterior.ps[s]:(s===0?anterior.p:null));
@@ -1033,8 +1058,10 @@ document.getElementById('btnAdicionar').onclick=function(){
 };
 document.getElementById('btnLimpar').textContent='Desmarcar este treino de hoje';
 document.getElementById('btnLimpar').onclick=function(){
+  if(sessaoConcluida()){mostrarStatus('Reabra o treino antes de desmarcar.');return}
   if(!confirm('Limpar as marcações de hoje do Treino '+treinoAtual+'?'))return;
   feitos().length=0;
+  if(dados.seriesFeitas?.[hoje()])delete dados.seriesFeitas[hoje()][treinoAtual];
   if(dados.concluidos&&dados.concluidos[hoje()])delete dados.concluidos[hoje()][treinoAtual];
   salvar(); render();
 };
@@ -1042,7 +1069,7 @@ document.getElementById('btnConcluir').onclick=function(){
  if(!itens().length)return;const d=hoje();
  if(!dados.concluidos[d])dados.concluidos[d]={};
  if(dados.concluidos[d][treinoAtual]==='manual')delete dados.concluidos[d][treinoAtual];
- else dados.concluidos[d][treinoAtual]='manual';
+ else {for(const ex of itens()){const list=seriesDoDia(ex);dados.seriesFeitas=dados.seriesFeitas||{};dados.seriesFeitas[d]=dados.seriesFeitas[d]||{};dados.seriesFeitas[d][treinoAtual]=dados.seriesFeitas[d][treinoAtual]||{};dados.seriesFeitas[d][treinoAtual][ex.id]=list;}dados.concluidos[d][treinoAtual]='manual';}
  salvar();render();
 };
 
@@ -1129,6 +1156,7 @@ function montarDoc(){
   return {
     treinos:dados.treinos,
     progresso:dados.progresso,
+    seriesFeitas:dados.seriesFeitas||{},
     pesos:dados.pesos,
     nomes:dados.nomes,
     concluidos:dados.concluidos,
@@ -1144,10 +1172,11 @@ function agendarEnvio(){
  if(!usuario||!syncPronto||sessaoAluno||syncConflito)return;
  indicadorSync(navigator.onLine?'Salvando…':'Sem conexão',navigator.onLine?'salvando':'offline');clearTimeout(envioTimer);envioTimer=setTimeout(enviarNuvem,800);
 }
-function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{},c.metas||{},c.feedback||{}])}
+function assinatura(c){return JSON.stringify([c.treinos||{},c.progresso||{},c.pesos||{},c.nomes||{},c.concluidos||{},c.medidas||{},c.metas||{},c.feedback||{},c.seriesFeitas||{}])}
 function versaoNuvem(c){return String(c.revisao||'')+'|'+String(c.atualizadoEm||0)+'|'+assinatura(c)}
 function temConteudo(d){
  if(!d)return false;
+ if(Object.keys(d.seriesFeitas||{}).length)return true;
  if(Object.keys(d.metas||{}).length||Object.keys(d.feedback||{}).length)return true;
  if(Object.values(d.treinos||{}).some(function(a){return Array.isArray(a)&&a.some(function(x){return x&&String(x.nome||'').trim()})}))return true;
  if(Object.values(d.progresso||{}).some(function(t){for(const k in t){if(Array.isArray(t[k])&&t[k].length)return true}return false}))return true;
@@ -1178,13 +1207,22 @@ function combinarSync(base,local,remote,path){
    const order=igualSync(lc,common)?ro:lo;
    for(const k of new Set([...order,...lo,...ro,...bo])){const v=combinarSync(bm.get(k),lm.get(k),rm.get(k),(path||'')+'/'+k);if(v!==undefined)out.push(v)}return out;
   }
-  if((path||'').startsWith('/progresso/')&&all.every(e=>typeof e==='string')){const bs=new Set(base),ls=new Set(local),rs=new Set(remote);return [...new Set([...local,...remote])].filter(k=>bs.has(k)?ls.has(k)&&rs.has(k):ls.has(k)||rs.has(k))}
+  if(((path||'').startsWith('/progresso/')||(path||'').startsWith('/seriesFeitas/'))&&all.every(e=>typeof e==='string')){const bs=new Set(base),ls=new Set(local),rs=new Set(remote);return [...new Set([...local,...remote])].filter(k=>bs.has(k)?ls.has(k)&&rs.has(k):ls.has(k)||rs.has(k))}
   if((path||'').endsWith('/ps'))return Array.from({length:Math.max(base.length,local.length,remote.length)},(_,i)=>combinarSync(base[i],local[i],remote[i],path+'/'+i));
  }
  throw erroComCodigo('conflito');
 }
-function conteudoSync(c){const d={};for(const k of ['treinos','progresso','pesos','nomes','concluidos','medidas','metas','feedback'])d[k]=(c&&c[k])||{};return d}
-function aplicarSync(c){if(assinatura(c)===assinatura(dados))return;dados=conteudoSync(c);if(!Object.keys(dados.treinos).length)dados.treinos={A:[]};if(!dados.medidas.pesos)dados.medidas.pesos={};atualizarOrdem();garantirTreinoAtual();salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
+function conteudoSync(c){const d={};for(const k of ['treinos','progresso','pesos','nomes','concluidos','medidas','metas','feedback','seriesFeitas'])d[k]=(c&&c[k])||{};return d}
+function reconciliarSeries(c){
+ const d=hoje();for(const [t,records] of Object.entries(c.seriesFeitas?.[d]||{})){
+  for(const ex of c.treinos?.[t]||[]){const list=records?.[ex.id];if(!Array.isArray(list))continue;
+   c.progresso=c.progresso||{};c.progresso[d]=c.progresso[d]||{};const f=c.progresso[d][t]=Array.isArray(c.progresso[d][t])?c.progresso[d][t]:[];
+   const complete=Array.from({length:nSeriesDe(ex)},(_,i)=>String(i+1)).every(k=>list.includes(k)),idx=f.indexOf(ex.id);
+   if(complete&&idx<0)f.push(ex.id);else if(!complete&&idx>=0)f.splice(idx,1);
+  }
+ }return c;
+}
+function aplicarSync(c){c=reconciliarSeries(conteudoSync(c));if(assinatura(c)===assinatura(dados))return;dados=conteudoSync(c);if(!Object.keys(dados.treinos).length)dados.treinos={A:[]};if(!dados.medidas.pesos)dados.medidas.pesos={};atualizarOrdem();garantirTreinoAtual();salvarLocal();render();if(!document.getElementById('viewEvolucao').hidden)renderEvolucao()}
 function conflitoSync(remote){syncPronto=false;syncConflito={uid:usuario.uid,remote,local:JSON.parse(JSON.stringify(montarDoc()))};try{localStorage.setItem(CHAVE+'_conflito_'+usuario.uid,JSON.stringify(syncConflito))}catch(e){}indicadorSync('Revisar alterações','erro','Há alterações diferentes em dois aparelhos. Escolha qual versão manter.');document.getElementById('modalConflitoSync').hidden=false}
 async function enviarNuvem(){
  if(!usuario||syncOcupado||sessaoAluno||syncConflito)return false;
@@ -1198,6 +1236,7 @@ async function enviarNuvem(){
    if(!usuario||usuario.uid!==uid)throw erroComCodigo('conta-alterada');
    let content=conteudoSync(payload);
    if(remote&&versaoNuvem(remote)!==baseNuvem){try{content=combinarSync(conteudoSync(base),content,conteudoSync(remote),'')}catch(e){e.remote=remote;throw e}}
+   content=reconciliarSeries(content);
    enviado={...payload,...content,revisao:id(),atualizadoEm:Date.now()};tx.set(ref,enviado);
   });
   if(!usuario||usuario.uid!==uid)return false;
@@ -1392,7 +1431,7 @@ async function enviarTreinoMeu(p,letra){
 function montarNovoPara(p){
  if(sessaoAluno)return;
  sessaoAluno={uid:p.uid,nome:(p.nome||p.email||'aluno'),backup:dados,backupOrdem:ORDEM.slice(),backupTreino:treinoAtual};
- dados={treinos:{A:[]},progresso:{},pesos:{},nomes:{},concluidos:{},medidas:{altura:'',pesos:{}},metas:{},feedback:{}};
+ dados={treinos:{A:[]},progresso:{},pesos:{},nomes:{},concluidos:{},medidas:{altura:'',pesos:{}},metas:{},feedback:{},seriesFeitas:{}};
  ORDEM=atualizarOrdem();
  treinoAtual=ORDEM[0];
  document.getElementById('modalProfessor').hidden=true;
@@ -1577,7 +1616,7 @@ document.getElementById('arquivoBackup').onchange=async function(){
   const obj=JSON.parse(await f.text());
   if(obj.formato!=='academia-tenda-backup'||!obj.dados||!obj.dados.treinos||!Object.keys(obj.dados.treinos).length||!obj.dados.progresso||!obj.dados.pesos||!Object.values(obj.dados.treinos).every(a=>Array.isArray(a)))throw Error('formato');
   if(!confirm('Importar backup? Isso substituirá os treinos e o histórico atuais. Exporte um backup antes de continuar.'))return;
-  dados={treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{},medidas:(obj.dados.medidas&&typeof obj.dados.medidas==='object')?obj.dados.medidas:{altura:'',pesos:{}},metas:obj.dados.metas&&typeof obj.dados.metas==='object'?obj.dados.metas:{},feedback:obj.dados.feedback&&typeof obj.dados.feedback==='object'?obj.dados.feedback:{}};
+  dados={seriesFeitas:obj.dados.seriesFeitas&&typeof obj.dados.seriesFeitas==='object'?obj.dados.seriesFeitas:{},treinos:obj.dados.treinos,progresso:obj.dados.progresso,pesos:obj.dados.pesos,nomes:(obj.dados.nomes&&typeof obj.dados.nomes==='object')?obj.dados.nomes:{},concluidos:(obj.dados.concluidos&&typeof obj.dados.concluidos==='object')?obj.dados.concluidos:{},medidas:(obj.dados.medidas&&typeof obj.dados.medidas==='object')?obj.dados.medidas:{altura:'',pesos:{}},metas:obj.dados.metas&&typeof obj.dados.metas==='object'?obj.dados.metas:{},feedback:obj.dados.feedback&&typeof obj.dados.feedback==='object'?obj.dados.feedback:{}};
   atualizarOrdem();garantirTreinoAtual();
   migrarConclusoes(dados);salvar();render();mostrarStatus(localSalvo?'Backup importado e salvo neste navegador.':'Backup carregado, mas não salvo. Exporte os dados antes de fechar.');
  }catch(e){mostrarStatus('Arquivo inválido. Selecione um backup exportado pelo Academia Tenda.')}
@@ -1602,7 +1641,7 @@ document.getElementById('irEvolucao').onclick=()=>mudarVista('evolucao');
 document.getElementById('mesAnterior').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()-1);renderCalendario()};
 document.getElementById('mesSeguinte').onclick=()=>{mesExibido.setMonth(mesExibido.getMonth()+1);renderCalendario()};
 function dataISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function diasComTreino(){return [...new Set([...Object.keys(dados.progresso||{}),...Object.keys(dados.concluidos||{})])].filter(diaAtivo)}
+function diasComTreino(){return [...new Set([...Object.keys(dados.progresso||{}),...Object.keys(dados.concluidos||{}),...Object.keys(dados.seriesFeitas||{})])].filter(diaAtivo)}
 function renderCalendario(){
  const y=mesExibido.getFullYear(),m=mesExibido.getMonth(),grid=document.getElementById('calendario');
  document.getElementById('mesTitulo').textContent=mesExibido.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
@@ -1800,8 +1839,8 @@ if(temConfig()){
  atualizar();
 })();
 </script>
-<script src="evolucao-professor.js?v=4"></script>
-<script src="rotina.js?v=3"></script>
+<script src="evolucao-professor.js?v=5"></script>
+<script src="rotina.js?v=4"></script>
 <script src="planos.js?v=1"></script>
 <script src="vinculos.js?v=2"></script>
 <script src="professor.js?v=12"></script>
